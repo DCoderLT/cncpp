@@ -25,6 +25,9 @@ namespace CnCpp {
 
         private SHP MouseTextures;
         private PAL MousePalette;
+
+        private INI INIFile;
+
         private Texture2D CurrentMouseTexture;
         private int MouseFrame;
         private int MouseScroll;
@@ -104,6 +107,11 @@ namespace CnCpp {
                                     MousePalette = PAL.GrayscalePalette;
                                 }
                                 MouseTextures.ApplyPalette(MousePalette);
+                                break;
+
+                            case ".INI":
+                                INIFile = new INI(file);
+
                                 break;
                         }
 
