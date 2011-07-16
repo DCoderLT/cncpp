@@ -9,7 +9,7 @@ using Microsoft.Xna.Framework;
 
 namespace CCClasses.FileFormats {
     public class SHP : BinaryFileFormat {
-        public class SHPHeader {
+        public class FileHeader {
             public int zero;
             public uint Width;
             public uint Height;
@@ -26,7 +26,7 @@ namespace CCClasses.FileFormats {
             }
         }
 
-        public class SHPFrameHeader {
+        public class FrameHeader {
             public uint X, Y, Width, Height, Compression, Unknown, Zero, Offset;
             public byte[] ProcessedBytes;
 
@@ -91,8 +91,8 @@ namespace CCClasses.FileFormats {
             }
         }
 
-        public SHPHeader Header = new SHPHeader();
-        public List<SHPFrameHeader> FrameHeaders = new List<SHPFrameHeader>();
+        public FileHeader Header = new FileHeader();
+        public List<FrameHeader> FrameHeaders = new List<FrameHeader>();
         public PAL Palette;
 
         public SHP(String filename = null) : base(filename) {
@@ -122,7 +122,7 @@ namespace CCClasses.FileFormats {
 
             for(var i = 0; i < Header.FrameCount; ++i) {
                 var seg = new ArraySegment<byte>(bytes, 8 + (i * 24), 24);
-                var fh = new SHPFrameHeader();
+                var fh = new FrameHeader();
                 if (fh.Read(seg)) {
                     FrameHeaders.Add(fh);
                 } else {

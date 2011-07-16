@@ -52,8 +52,12 @@
   <ItemGroup>
     <Compile Include="FileFormats\IFileFormat.cs" />
     <Compile Include="FileFormats\INI.cs" />
+    <Compile Include="FileFormats\MIX.cs" />
+    <Compile Include="FileFormats\MIX_Magic.cs" />
     <Compile Include="FileFormats\PAL.cs" />
     <Compile Include="FileFormats\SHP.cs" />
+    <Compile Include="Libraries\Blowfish.cs" />
+    <Compile Include="Libraries\Crc32.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

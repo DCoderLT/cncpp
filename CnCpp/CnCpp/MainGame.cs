@@ -113,6 +113,12 @@ namespace CnCpp {
                                 INIFile = new INI(file);
 
                                 break;
+
+                            case ".MIX":
+                                var M = new MIX(file);
+
+                                Console.WriteLine("Loaded MIX with {0} entries", M.Entries.Count);
+                                break;
                         }
 
                     }
