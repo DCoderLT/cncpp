@@ -50,6 +50,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FileFormats\HVA.cs" />
     <Compile Include="FileFormats\IFileFormat.cs" />
     <Compile Include="FileFormats\INI.cs" />
     <Compile Include="FileFormats\MIX.cs" />

@@ -119,6 +119,14 @@ namespace CnCpp {
 
                                 Console.WriteLine("Loaded MIX with {0} entries", M.Entries.Count);
                                 break;
+
+
+                            case ".HVA":
+                                var H = new HVA(file);
+
+                                Console.WriteLine("Loaded HVA with {0} sections", H.Sections.Count);
+                                break;
+
                         }
 
                     }

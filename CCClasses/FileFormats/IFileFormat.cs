@@ -59,5 +59,21 @@ namespace CCClasses {
                 }
             }
         }
+
+        public static String ReadCString(BinaryReader r, uint len) {
+            String s = "";
+            bool read = true;
+            for (var i = 0u; i < len; ++i) {
+                char c = r.ReadChar();
+                if (c != 0) {
+                    if (read) {
+                        s += c;
+                    }
+                } else {
+                    read = false;
+                }
+            }
+            return s;
+        }
     }
 }

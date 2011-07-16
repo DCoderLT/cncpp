@@ -5,6 +5,13 @@ using System.Text;
 using CCClasses.Libraries;
 
 namespace CCClasses.FileFormats {
+
+    /**
+     * 
+     * Here be dragons, courtesy of XCC.
+     * If you touch this, you will be responsible for maintaining it.
+     * 
+     */
     public class MIX_Magic {
         static UInt16 GetWord(UInt32[] data, uint key) {
             var ixDw = key >> 1;
