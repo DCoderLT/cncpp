@@ -35,6 +35,28 @@ namespace CnCpp {
         private int MouseScroll;
         private Vector2 MousePos;
 
+        private VXL Voxel;
+        private bool VoxelChanged;
+
+        private VXL.VertexPositionColorNormal[] VoxelContent;
+        private int[] VoxelIndices;
+
+        Matrix worldMatrix;
+        Matrix viewMatrix;
+        Matrix projectionMatrix;
+
+        BasicEffect effect;
+        VertexBuffer vertexBuffer;
+        IndexBuffer indexBuffer;
+
+
+        private int offX = 0, offY = 0;
+        private Vector3 rotation = new Vector3(0f, 0f, 0f);
+
+        private float scale = 1f;
+
+
+
         public MainGame() {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
@@ -63,6 +85,25 @@ namespace CnCpp {
             graphics.PreferredBackBufferHeight = 600;
             graphics.IsFullScreen = false;
             graphics.ApplyChanges();
+
+            viewMatrix = Matrix.CreateLookAt(
+                new Vector3(0.0f, 0.0f, 1.0f),
+                Vector3.Zero,
+                Vector3.Up
+                );
+
+            projectionMatrix = Matrix.CreateOrthographic(
+                (float)GraphicsDevice.Viewport.Width / 2,
+                (float)GraphicsDevice.Viewport.Height / 2,
+                -1000.0f * scale, 1000.0f * scale);
+
+            effect = new BasicEffect(GraphicsDevice);
+            effect.VertexColorEnabled = true;
+
+            worldMatrix = Matrix.CreateTranslation(200, 200, 0);
+            effect.World = worldMatrix;
+            effect.View = viewMatrix;
+            effect.Projection = projectionMatrix;
         }
 
         private void InitializeDragDrop() {
@@ -131,11 +172,11 @@ namespace CnCpp {
 
 
                             case ".VXL":
-                                var VX = new VXL(file);
+                                Voxel = new VXL(file);
+                                VoxelChanged = true;
 
-                                Console.WriteLine("Loaded VXL with {0} sections", VX.Sections.Count);
+                                Console.WriteLine("Loaded VXL with {0} sections", Voxel.Sections.Count);
                                 break;
-
                         }
 
                     }
@@ -175,6 +216,49 @@ namespace CnCpp {
             var kState = Keyboard.GetState();
             if (kState.IsKeyDown(Keys.Escape))
                 this.Exit();
+
+            if (kState.IsKeyDown(Keys.Space)) {
+                offX = offY = 0;
+                rotation.X = rotation.Y = rotation.Z = 0f;
+                scale = 1f;
+            }
+
+            if (kState.IsKeyDown(Keys.Up)) {
+                offY -= (int)scale;
+            } else if (kState.IsKeyDown(Keys.Down)) {
+                offY += (int)scale;
+            }
+
+            if (kState.IsKeyDown(Keys.Left)) {
+                offX -= (int)scale;
+            } else if (kState.IsKeyDown(Keys.Right)) {
+                offX += (int)scale;
+            }
+
+            if (kState.IsKeyDown(Keys.Q)) {
+                rotation.X += 0.01f;
+            } else if (kState.IsKeyDown(Keys.A)) {
+                rotation.X -= 0.01f;
+            }
+
+            if (kState.IsKeyDown(Keys.W)) {
+                rotation.Y += 0.01f;
+            } else if (kState.IsKeyDown(Keys.S)) {
+                rotation.Y -= 0.01f;
+            }
+
+            if (kState.IsKeyDown(Keys.E)) {
+                rotation.Z += 0.01f;
+            } else if (kState.IsKeyDown(Keys.D)) {
+                rotation.Z -= 0.01f;
+            }
+
+            if (kState.IsKeyDown(Keys.Multiply)) {
+                scale *= 1.01f;
+            } else if (kState.IsKeyDown(Keys.Divide)) {
+                scale /= 1.01f;
+            }
+
 
             // TODO: Add your update logic here
 
@@ -223,7 +307,31 @@ namespace CnCpp {
                     }
                 }
             }
-            
+
+            if (VoxelChanged) {
+                VoxelChanged = false;
+                if (MousePalette != null) {
+                    Voxel.Sections[0].GetVertices(MousePalette, out VoxelContent, out VoxelIndices);
+
+                    Console.WriteLine("Loaded {0} vertices and {1} indices", VoxelContent.Length, VoxelIndices.Length);
+
+                    if (vertexBuffer != null) {
+                        vertexBuffer.Dispose();
+                    }
+
+                    // Initialize the vertex buffer, allocating memory for each vertex.
+                    vertexBuffer = new VertexBuffer(graphics.GraphicsDevice, VXL.VertexPositionColorNormal.VertexDeclaration, VoxelContent.Length, BufferUsage.WriteOnly);
+
+                    // Set the vertex buffer data to the array of vertices.
+                    vertexBuffer.SetData<VXL.VertexPositionColorNormal>(VoxelContent);
+
+                    indexBuffer = new IndexBuffer(graphics.GraphicsDevice, typeof(int), VoxelIndices.Length, BufferUsage.WriteOnly);
+
+                    indexBuffer.SetData(VoxelIndices);
+
+                }
+            }
+
             base.Update(gameTime);
         }
 
@@ -235,23 +343,47 @@ namespace CnCpp {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
             // TODO: Add your drawing code here
+            GraphicsDevice.RasterizerState = new RasterizerState() {
+                FillMode = FillMode.Solid,
+                CullMode = CullMode.None
+            };
 
-            if (CurrentMouseTexture != null) {
+            //if (CurrentMouseTexture != null) {
 
-                //var bs = new BlendState();
-                //bs.AlphaSourceBlend = Blend.One;
-                //bs.AlphaDestinationBlend = Blend.InverseSourceAlpha;
-                //bs.ColorSourceBlend = Blend.One;
-                //bs.ColorDestinationBlend = Blend.Zero;
-                //bs.ColorWriteChannels = ColorWriteChannels.Red | ColorWriteChannels.Green | ColorWriteChannels.Blue | ColorWriteChannels.Alpha;
+            //    //var bs = new BlendState();
+            //    //bs.AlphaSourceBlend = Blend.One;
+            //    //bs.AlphaDestinationBlend = Blend.InverseSourceAlpha;
+            //    //bs.ColorSourceBlend = Blend.One;
+            //    //bs.ColorDestinationBlend = Blend.Zero;
+            //    //bs.ColorWriteChannels = ColorWriteChannels.Red | ColorWriteChannels.Green | ColorWriteChannels.Blue | ColorWriteChannels.Alpha;
 
-                spriteBatch.Begin();
+            //    spriteBatch.Begin();
 
-                spriteBatch.Draw(CurrentMouseTexture, MousePos, Color.White);
+            //    spriteBatch.Draw(CurrentMouseTexture, MousePos, Color.White);
 
-                spriteBatch.End();
+            //    spriteBatch.End();
+            //}
+
+
+            if (VoxelContent != null) {
+
+                var M =
+                Matrix.CreateTranslation(-100 + offX, -100 + offY, 0)
+                ;
+
+                worldMatrix = M * Matrix.CreateRotationX(rotation.X) * Matrix.CreateRotationY(rotation.Y) * Matrix.CreateRotationZ(rotation.Z) * Matrix.CreateScale(scale);
+                effect.World = worldMatrix;
+
+                GraphicsDevice.SetVertexBuffer(vertexBuffer);
+                GraphicsDevice.Indices = indexBuffer;
+
+                foreach (EffectPass pass in effect.CurrentTechnique.Passes) {
+                    pass.Apply();
+
+                    GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, VoxelContent.Length, 0, VoxelIndices.Length / 3);
+                }
             }
-            
+
             base.Draw(gameTime);
         }
     }
