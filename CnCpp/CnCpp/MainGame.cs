@@ -50,8 +50,11 @@ namespace CnCpp {
         IndexBuffer indexBuffer;
 
 
-        private int offX = 0, offY = 0;
-        private Vector3 rotation = new Vector3(0f, 0f, 0f);
+        private int defOX = 0, defOY = 0;
+        private Vector3 defRotation = new Vector3(MathHelper.PiOver4, -1 * MathHelper.PiOver4, -3 * MathHelper.PiOver4);
+
+        private int offX, offY;
+        private Vector3 rotation;
 
         private float scale = 1f;
 
@@ -86,24 +89,12 @@ namespace CnCpp {
             graphics.IsFullScreen = false;
             graphics.ApplyChanges();
 
-            viewMatrix = Matrix.CreateLookAt(
-                new Vector3(0.0f, 0.0f, 1.0f),
-                Vector3.Zero,
-                Vector3.Up
-                );
-
-            projectionMatrix = Matrix.CreateOrthographic(
-                (float)GraphicsDevice.Viewport.Width / 2,
-                (float)GraphicsDevice.Viewport.Height / 2,
-                -1000.0f * scale, 1000.0f * scale);
-
             effect = new BasicEffect(GraphicsDevice);
             effect.VertexColorEnabled = true;
 
-            worldMatrix = Matrix.CreateTranslation(200, 200, 0);
-            effect.World = worldMatrix;
-            effect.View = viewMatrix;
-            effect.Projection = projectionMatrix;
+            offX = defOX;
+            offY = defOY;
+            rotation = defRotation;
         }
 
         private void InitializeDragDrop() {
@@ -218,8 +209,9 @@ namespace CnCpp {
                 this.Exit();
 
             if (kState.IsKeyDown(Keys.Space)) {
-                offX = offY = 0;
-                rotation.X = rotation.Y = rotation.Z = 0f;
+                offX = defOX;
+                offY = defOY;
+                rotation = defRotation;
                 scale = 1f;
             }
 
@@ -235,28 +227,34 @@ namespace CnCpp {
                 offX += (int)scale;
             }
 
+            var rot = MathHelper.PiOver4 / 4;
+
             if (kState.IsKeyDown(Keys.Q)) {
-                rotation.X += 0.01f;
+                rotation.X += rot;
             } else if (kState.IsKeyDown(Keys.A)) {
-                rotation.X -= 0.01f;
+                rotation.X -= rot;
             }
 
             if (kState.IsKeyDown(Keys.W)) {
-                rotation.Y += 0.01f;
+                rotation.Y += rot;
             } else if (kState.IsKeyDown(Keys.S)) {
-                rotation.Y -= 0.01f;
+                rotation.Y -= rot;
             }
 
             if (kState.IsKeyDown(Keys.E)) {
-                rotation.Z += 0.01f;
+                rotation.Z += rot;
             } else if (kState.IsKeyDown(Keys.D)) {
-                rotation.Z -= 0.01f;
+                rotation.Z -= rot;
             }
 
             if (kState.IsKeyDown(Keys.Multiply)) {
                 scale *= 1.01f;
             } else if (kState.IsKeyDown(Keys.Divide)) {
                 scale /= 1.01f;
+            }
+
+            if (kState.IsKeyDown(Keys.L)) {
+                effect.LightingEnabled = !effect.LightingEnabled;
             }
 
 
@@ -311,7 +309,7 @@ namespace CnCpp {
             if (VoxelChanged) {
                 VoxelChanged = false;
                 if (MousePalette != null) {
-                    Voxel.Sections[0].GetVertices(MousePalette, out VoxelContent, out VoxelIndices);
+                    Voxel.GetVertices(MousePalette, out VoxelContent, out VoxelIndices);
 
                     Console.WriteLine("Loaded {0} vertices and {1} indices", VoxelContent.Length, VoxelIndices.Length);
 
@@ -366,13 +364,18 @@ namespace CnCpp {
 
 
             if (VoxelContent != null) {
+                worldMatrix = Matrix.Identity * Matrix.CreateScale(scale);
 
-                var M =
-                Matrix.CreateTranslation(-100 + offX, -100 + offY, 0)
-                ;
-
-                worldMatrix = M * Matrix.CreateRotationX(rotation.X) * Matrix.CreateRotationY(rotation.Y) * Matrix.CreateRotationZ(rotation.Z) * Matrix.CreateScale(scale);
                 effect.World = worldMatrix;
+
+                projectionMatrix = Matrix.CreateOrthographic((float)GraphicsDevice.Viewport.Width, (float)GraphicsDevice.Viewport.Height, -1000.0f, 1000.0f);
+
+                effect.Projection = projectionMatrix;
+
+                viewMatrix = Matrix.CreateRotationX(rotation.X) * Matrix.CreateRotationY(rotation.Y) * Matrix.CreateRotationZ(rotation.Z) * Matrix.CreateTranslation(offX, offY, 0);
+
+                effect.View = viewMatrix;
+                
 
                 GraphicsDevice.SetVertexBuffer(vertexBuffer);
                 GraphicsDevice.Indices = indexBuffer;

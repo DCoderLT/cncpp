@@ -727,7 +727,7 @@ namespace CCClasses.FileFormats.Binary {
             private List<VertexPositionColorNormal> ComputedVertices;
             private List<int> ComputedIndices;
 
-            public void GetVertices(PAL Palette, out VertexPositionColorNormal[] Vertices, out int[] Indices) {
+            internal void GetVertices(PAL Palette, List<VertexPositionColorNormal> Vertices, List<int> Indices) {
                 if (ComputedVertices == null) {
                     ComputedVertices = new List<VertexPositionColorNormal>();
                     ComputedIndices = new List<int>();
@@ -842,8 +842,8 @@ namespace CCClasses.FileFormats.Binary {
                     }
                 }
 
-                Vertices = ComputedVertices.ToArray();
-                Indices = ComputedIndices.ToArray();
+                Vertices.AddRange(ComputedVertices);
+                Indices.AddRange(ComputedIndices);
             }
         };
 
@@ -923,5 +923,18 @@ namespace CCClasses.FileFormats.Binary {
 
             return true;
         }
+
+        public void GetVertices(PAL Palette, out VertexPositionColorNormal[] Vertices, out int[] Indices) {
+            var AllVertices = new List<VertexPositionColorNormal>();
+            var AllIndices = new List<int>();
+
+            foreach (var s in Sections) {
+                s.GetVertices(Palette, AllVertices, AllIndices);
+            }
+
+            Vertices = AllVertices.ToArray();
+            Indices = AllIndices.ToArray();
+        }
+
     }
 }
