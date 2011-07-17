@@ -6,7 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
 using System.IO;
 
-namespace CCClasses.FileFormats {
+namespace CCClasses.FileFormats.Binary {
     public class PAL : BinaryFileFormat {
         public static Dictionary<String, PAL> LoadedPalettes = new Dictionary<String, PAL>();
 

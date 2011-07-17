@@ -5,7 +5,7 @@ using System.Text;
 using System.IO;
 using Microsoft.Xna.Framework;
 
-namespace CCClasses.FileFormats {
+namespace CCClasses.FileFormats.Binary {
     public class HVA : BinaryFileFormat {
 
         public class FileHeader {
@@ -46,10 +46,10 @@ namespace CCClasses.FileFormats {
             public void ReadMatrix(BinaryReader r) {
                 foreach (var M in T) {
                     for (var i = 0; i < 3; ++i) {
-                        M.TM[i].W = r.ReadSingle();
                         M.TM[i].X = r.ReadSingle();
                         M.TM[i].Y = r.ReadSingle();
                         M.TM[i].Z = r.ReadSingle();
+                        M.TM[i].W = r.ReadSingle();
                     }
                 }
             }

@@ -50,13 +50,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FileFormats\HVA.cs" />
+    <Compile Include="FileFormats\Binary\HVA.cs" />
+    <Compile Include="FileFormats\Binary\VXL.cs" />
     <Compile Include="FileFormats\IFileFormat.cs" />
-    <Compile Include="FileFormats\INI.cs" />
-    <Compile Include="FileFormats\MIX.cs" />
-    <Compile Include="FileFormats\MIX_Magic.cs" />
-    <Compile Include="FileFormats\PAL.cs" />
-    <Compile Include="FileFormats\SHP.cs" />
+    <Compile Include="FileFormats\Text\INI.cs" />
+    <Compile Include="FileFormats\Binary\MIX.cs" />
+    <Compile Include="FileFormats\Binary\MIX_Magic.cs" />
+    <Compile Include="FileFormats\Binary\PAL.cs" />
+    <Compile Include="FileFormats\Binary\SHP.cs" />
     <Compile Include="Libraries\Blowfish.cs" />
     <Compile Include="Libraries\Crc32.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -7,7 +7,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Graphics.PackedVector;
 using Microsoft.Xna.Framework;
 
-namespace CCClasses.FileFormats {
+namespace CCClasses.FileFormats.Binary {
     public class SHP : BinaryFileFormat {
         public class FileHeader {
             public int zero;

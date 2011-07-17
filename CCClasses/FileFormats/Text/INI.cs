@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.IO;
 using System.Globalization;
 
-namespace CCClasses.FileFormats {
+namespace CCClasses.FileFormats.Text {
     public class INIEntry {
         public String Key;
         public String Value;

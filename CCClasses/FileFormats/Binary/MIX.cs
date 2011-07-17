@@ -5,7 +5,7 @@ using System.Text;
 using System.IO;
 using CCClasses.Libraries;
 
-namespace CCClasses.FileFormats {
+namespace CCClasses.FileFormats.Binary {
     public class MIX : BinaryFileFormat {
         public enum MIXFlags {
             HasChecksum = 0x00010000,

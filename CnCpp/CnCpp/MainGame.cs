@@ -11,6 +11,8 @@ using Microsoft.Xna.Framework.Media;
 using System.IO;
 using CCClasses;
 using CCClasses.FileFormats;
+using CCClasses.FileFormats.Text;
+using CCClasses.FileFormats.Binary;
 
 namespace CnCpp {
     /// <summary>
@@ -125,6 +127,13 @@ namespace CnCpp {
                                 var H = new HVA(file);
 
                                 Console.WriteLine("Loaded HVA with {0} sections", H.Sections.Count);
+                                break;
+
+
+                            case ".VXL":
+                                var VX = new VXL(file);
+
+                                Console.WriteLine("Loaded VXL with {0} sections", VX.Sections.Count);
                                 break;
 
                         }
