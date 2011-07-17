@@ -845,6 +845,44 @@ namespace CCClasses.FileFormats.Binary {
                 Vertices.AddRange(ComputedVertices);
                 Indices.AddRange(ComputedIndices);
             }
+
+            internal void ApplyHVA(HVA.Section MotLib, int FrameIdx, List<VertexPositionColorNormal> Vertices, int startIdx) {
+                var rot = MotLib.GetRotation(FrameIdx);
+                var pos = MotLib.GetPosition(FrameIdx);
+                if (pos.X > 0) {
+                    pos.X *= Tail.HVAMultiplier;
+                } else {
+                    pos.X = 0;
+                }
+                if (pos.Y > 0) {
+                    pos.Y *= Tail.HVAMultiplier;
+                } else {
+                    pos.Y = 0;
+                }
+                if (pos.Z > 0) {
+                    pos.Z *= Tail.HVAMultiplier;
+                } else {
+                    pos.Z = 0;
+                }
+
+                pos += Tail.MinBounds;
+
+                //var transf = Tail.TM;
+                //var tX = transf.V[0].W;
+                //var tY = transf.V[1].W;
+                //var tZ = transf.V[2].W;
+
+                //pos.X += tX;
+                //pos.Y += tY;
+                //pos.Z += tZ;
+
+                for (var i = startIdx; i < Vertices.Count; ++i) {
+                    var v = Vertices[i];
+                    v.Position = Vector3.Transform(v.Position, rot);
+                    v.Position = Vector3.Add(v.Position, pos);
+                    Vertices[i] = v;
+                }
+            }
         };
 
         public FileHeader Header = new FileHeader();
@@ -853,7 +891,13 @@ namespace CCClasses.FileFormats.Binary {
 
         public List<Section> Sections = new List<Section>();
 
+        private HVA MotLib;
+
         public VXL(String filename = null) : base(filename) {
+        }
+
+        public void SetHVA(HVA Mot) {
+            MotLib = Mot;
         }
         
         public override bool ReadFile(BinaryReader r, long length) {
@@ -924,12 +968,17 @@ namespace CCClasses.FileFormats.Binary {
             return true;
         }
 
-        public void GetVertices(PAL Palette, out VertexPositionColorNormal[] Vertices, out int[] Indices) {
+        public void GetVertices(PAL Palette, int FrameIdx, out VertexPositionColorNormal[] Vertices, out int[] Indices) {
             var AllVertices = new List<VertexPositionColorNormal>();
             var AllIndices = new List<int>();
 
-            foreach (var s in Sections) {
+            for (var i = 0; i < Sections.Count; ++i) {
+                var s = Sections[i];
+                var lastVertice = AllVertices.Count;
                 s.GetVertices(Palette, AllVertices, AllIndices);
+                if (MotLib != null) {
+                    s.ApplyHVA(MotLib.Sections[i], FrameIdx, AllVertices, lastVertice);
+                }
             }
 
             Vertices = AllVertices.ToArray();

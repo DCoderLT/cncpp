@@ -35,8 +35,10 @@ namespace CnCpp {
         private int MouseScroll;
         private Vector2 MousePos;
 
+        private HVA MotLib;
         private VXL Voxel;
         private bool VoxelChanged;
+        private int VoxelFrame;
 
         private VXL.VertexPositionColorNormal[] VoxelContent;
         private int[] VoxelIndices;
@@ -163,10 +165,35 @@ namespace CnCpp {
 
 
                             case ".VXL":
-                                Voxel = new VXL(file);
-                                VoxelChanged = true;
+                                var hvaName = file.Replace(Path.GetExtension(file), ".hva");
+                                if (File.Exists(hvaName)) {
+                                    MotLib = new HVA(hvaName);
 
-                                Console.WriteLine("Loaded VXL with {0} sections", Voxel.Sections.Count);
+                                    Voxel = new VXL(file);
+                                    VoxelChanged = true;
+                                    VoxelFrame = 0;
+
+                                    Console.WriteLine("Loaded VXL with {0} sections", Voxel.Sections.Count);
+
+                                    foreach (var S in MotLib.Sections) {
+                                        Console.WriteLine("Section####");
+                                        foreach (var TM in S.T) {
+                                            Console.WriteLine(@"Section:
+{0:0.00}; {1:0.00}; {2:0.00};     {3:0.00}
+{4:0.00}; {5:0.00}; {6:0.00};     {7:0.00}
+{8:0.00}; {9:0.00}; {10:0.00};     {11:0.00}"
+                                                , TM.M11, TM.M12, TM.M13, TM.M14
+                                                , TM.M21, TM.M22, TM.M23, TM.M24
+                                                , TM.M31, TM.M32, TM.M33, TM.M34
+                                            );
+                                        }
+                                    }
+
+                                    Voxel.SetHVA(MotLib);
+
+                                } else {
+                                    System.Windows.Forms.MessageBox.Show(String.Format("Failed to load HVA file corresponding to VXL {0} ({1})", file, hvaName));
+                                }
                                 break;
                         }
 
@@ -257,6 +284,25 @@ namespace CnCpp {
                 effect.LightingEnabled = !effect.LightingEnabled;
             }
 
+            if (Voxel != null) {
+                var fcount = (int)(MotLib.Header.FrameCount - 1);
+                if (kState.IsKeyDown(Keys.Z)) {
+                    if (VoxelFrame < fcount) {
+                        ++VoxelFrame;
+                    } else {
+                        VoxelFrame = 0;
+                    }
+                    VoxelChanged = true;
+                } else if (kState.IsKeyDown(Keys.X)) {
+                    if (VoxelFrame > 0) {
+                        --VoxelFrame;
+                    } else {
+                        VoxelFrame = fcount;
+                    }
+                    VoxelChanged = true;
+                }
+            }
+
 
             // TODO: Add your update logic here
 
@@ -309,7 +355,7 @@ namespace CnCpp {
             if (VoxelChanged) {
                 VoxelChanged = false;
                 if (MousePalette != null) {
-                    Voxel.GetVertices(MousePalette, out VoxelContent, out VoxelIndices);
+                    Voxel.GetVertices(MousePalette, VoxelFrame, out VoxelContent, out VoxelIndices);
 
                     Console.WriteLine("Loaded {0} vertices and {1} indices", VoxelContent.Length, VoxelIndices.Length);
 
