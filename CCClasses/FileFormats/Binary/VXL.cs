@@ -632,6 +632,21 @@ namespace CCClasses.FileFormats.Binary {
                 }
             }
 
+            public Vector3 Scale {
+                get {
+                    return new Vector3(ScaleX, ScaleY, ScaleZ);
+                }
+            }
+
+            public Vector3 Displacement(byte X, byte Y, byte Z) {
+                var displ = MinBounds;
+
+                displ.X += X * ScaleX;
+                displ.Y += Y * ScaleY;
+                displ.Z += Z * ScaleZ;
+
+                return displ;
+            }
 
             enum CornerTags {
                 HHL = 0,
@@ -756,16 +771,16 @@ namespace CCClasses.FileFormats.Binary {
                                 continue;
                             }
 
+                            var realPos = Tail.Displacement(v.X, v.Y, v.Z);
+
                             var start = ComputedVertices.Count;
 
                             foreach (var sh in shifts) {
                                 var vpcn = new VertexPositionColorNormal();
 
-                                var shX = sh.X * Tail.ScaleX;
-                                var shY = sh.Y * Tail.ScaleY;
-                                var shZ = sh.Z * Tail.ScaleZ;
+                                var scaledShift = sh * Tail.Scale;
 
-                                var pos = new Vector3(v.X + shX, v.Y + shY, v.Z + shZ);
+                                var pos = realPos + scaledShift;
 
                                 vpcn.Position = pos;
                                 vpcn.Color = Clr;
@@ -849,23 +864,26 @@ namespace CCClasses.FileFormats.Binary {
             internal void ApplyHVA(HVA.Section MotLib, int FrameIdx, List<VertexPositionColorNormal> Vertices, int startIdx) {
                 var rot = MotLib.GetRotation(FrameIdx);
                 var pos = MotLib.GetPosition(FrameIdx);
-                if (pos.X > 0) {
-                    pos.X *= Tail.HVAMultiplier;
-                } else {
-                    pos.X = 0;
-                }
-                if (pos.Y > 0) {
-                    pos.Y *= Tail.HVAMultiplier;
-                } else {
-                    pos.Y = 0;
-                }
-                if (pos.Z > 0) {
-                    pos.Z *= Tail.HVAMultiplier;
-                } else {
-                    pos.Z = 0;
-                }
 
-                pos += Tail.MinBounds;
+                pos *= Tail.HVAMultiplier;
+
+                //if (pos.X > 0) {
+                //    pos.X *= Tail.HVAMultiplier;
+                //} else {
+                //    pos.X = 0;
+                //}
+                //if (pos.Y > 0) {
+                //    pos.Y *= Tail.HVAMultiplier;
+                //} else {
+                //    pos.Y = 0;
+                //}
+                //if (pos.Z > 0) {
+                //    pos.Z *= Tail.HVAMultiplier;
+                //} else {
+                //    pos.Z = 0;
+                //}
+
+//                pos += Tail.MinBounds;
 
                 //var transf = Tail.TM;
                 //var tX = transf.V[0].W;
