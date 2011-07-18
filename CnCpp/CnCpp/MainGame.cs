@@ -175,20 +175,6 @@ namespace CnCpp {
 
                                     Console.WriteLine("Loaded VXL with {0} sections", Voxel.Sections.Count);
 
-                                    foreach (var S in MotLib.Sections) {
-                                        Console.WriteLine("Section####");
-                                        foreach (var TM in S.T) {
-                                            Console.WriteLine(@"Section:
-{0:0.00}; {1:0.00}; {2:0.00};     {3:0.00}
-{4:0.00}; {5:0.00}; {6:0.00};     {7:0.00}
-{8:0.00}; {9:0.00}; {10:0.00};     {11:0.00}"
-                                                , TM.M11, TM.M12, TM.M13, TM.M14
-                                                , TM.M21, TM.M22, TM.M23, TM.M24
-                                                , TM.M31, TM.M32, TM.M33, TM.M34
-                                            );
-                                        }
-                                    }
-
                                     Voxel.SetHVA(MotLib);
 
                                 } else {

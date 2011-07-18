@@ -685,10 +685,26 @@ namespace CCClasses.FileFormats.Binary {
             }
         };
 
+        internal class SectionFrame {
+            public List<VertexPositionColorNormal> ComputedVertices = new List<VertexPositionColorNormal>();
+            public List<int> ComputedIndices = new List<int>();
+        }
+
         public class Section {
             public SectionHeader Head = new SectionHeader();
             public SectionBody Body = new SectionBody();
             public SectionTailer Tail = new SectionTailer();
+
+            internal SectionFrame[] ComputedFrames = new SectionFrame[1];
+
+            internal int FrameCount {
+                get {
+                    return ComputedFrames.Length;
+                }
+                set {
+                    ComputedFrames = new SectionFrame[value];
+                }
+            }
 
             internal void PrepareBody() {
                 Body.Spans = new SectionSpan[Tail.SizeX, Tail.SizeY];
@@ -742,7 +758,7 @@ namespace CCClasses.FileFormats.Binary {
             private List<VertexPositionColorNormal> ComputedVertices;
             private List<int> ComputedIndices;
 
-            internal void GetVertices(PAL Palette, List<VertexPositionColorNormal> Vertices, List<int> Indices) {
+            internal void ComputeVerticesIndices(PAL Palette) {
                 if (ComputedVertices == null) {
                     ComputedVertices = new List<VertexPositionColorNormal>();
                     ComputedIndices = new List<int>();
@@ -856,51 +872,36 @@ namespace CCClasses.FileFormats.Binary {
                         }
                     }
                 }
-
-                Vertices.AddRange(ComputedVertices);
-                Indices.AddRange(ComputedIndices);
             }
 
-            internal void ApplyHVA(HVA.Section MotLib, int FrameIdx, List<VertexPositionColorNormal> Vertices, int startIdx) {
-                var rot = MotLib.GetRotation(FrameIdx);
-                var pos = MotLib.GetPosition(FrameIdx);
+            internal void GetVertices(HVA.Section MotLib, int FrameIdx, PAL Palette, List<VertexPositionColorNormal> Vertices, List<int> Indices) {
+                if (ComputedFrames[FrameIdx] == null) {
+                    ComputeVerticesIndices(Palette);
 
-                pos *= Tail.HVAMultiplier;
+                    var computedF = new SectionFrame();
 
-                //if (pos.X > 0) {
-                //    pos.X *= Tail.HVAMultiplier;
-                //} else {
-                //    pos.X = 0;
-                //}
-                //if (pos.Y > 0) {
-                //    pos.Y *= Tail.HVAMultiplier;
-                //} else {
-                //    pos.Y = 0;
-                //}
-                //if (pos.Z > 0) {
-                //    pos.Z *= Tail.HVAMultiplier;
-                //} else {
-                //    pos.Z = 0;
-                //}
+                    var rot = MotLib.GetRotation(FrameIdx);
+                    var pos = MotLib.GetPosition(FrameIdx);
 
-//                pos += Tail.MinBounds;
+                    pos *= Tail.HVAMultiplier;
 
-                //var transf = Tail.TM;
-                //var tX = transf.V[0].W;
-                //var tY = transf.V[1].W;
-                //var tZ = transf.V[2].W;
+                    computedF.ComputedVertices = ComputedVertices.Select(v => {
+                        v.Position = Vector3.Transform(v.Position, rot);
+                        v.Position += pos;
+                        return v;
+                    }).ToList();
 
-                //pos.X += tX;
-                //pos.Y += tY;
-                //pos.Z += tZ;
+                    computedF.ComputedIndices = ComputedIndices;
 
-                for (var i = startIdx; i < Vertices.Count; ++i) {
-                    var v = Vertices[i];
-                    v.Position = Vector3.Transform(v.Position, rot);
-                    v.Position = Vector3.Add(v.Position, pos);
-                    Vertices[i] = v;
+                    ComputedFrames[FrameIdx] = computedF;
                 }
+
+                var cached = ComputedFrames[FrameIdx];
+
+                Vertices.AddRange(cached.ComputedVertices);
+                Indices.AddRange(cached.ComputedIndices);
             }
+
         };
 
         public FileHeader Header = new FileHeader();
@@ -916,6 +917,9 @@ namespace CCClasses.FileFormats.Binary {
 
         public void SetHVA(HVA Mot) {
             MotLib = Mot;
+            foreach (var s in Sections) {
+                s.FrameCount = (int)MotLib.Header.FrameCount;
+            }
         }
         
         public override bool ReadFile(BinaryReader r, long length) {
@@ -993,10 +997,10 @@ namespace CCClasses.FileFormats.Binary {
             for (var i = 0; i < Sections.Count; ++i) {
                 var s = Sections[i];
                 var lastVertice = AllVertices.Count;
-                s.GetVertices(Palette, AllVertices, AllIndices);
-                if (MotLib != null) {
-                    s.ApplyHVA(MotLib.Sections[i], FrameIdx, AllVertices, lastVertice);
-                }
+
+                var hvaSection = MotLib != null ? MotLib.Sections[i] : null;
+
+                s.GetVertices(hvaSection, FrameIdx, Palette, AllVertices, AllIndices);
             }
 
             Vertices = AllVertices.ToArray();
