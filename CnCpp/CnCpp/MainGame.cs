@@ -35,10 +35,10 @@ namespace CnCpp {
         private int MouseScroll;
         private Vector2 MousePos;
 
-        private HVA MotLib;
-        private VXL Voxel;
-        private bool VoxelChanged;
+        private List<VoxLib> LoadedVoxels = new List<VoxLib>();
         private int VoxelFrame;
+
+        private bool VoxelChanged;
 
         private VXL.VertexPositionColorNormal[] VoxelContent;
         private int[] VoxelIndices;
@@ -165,20 +165,28 @@ namespace CnCpp {
 
 
                             case ".VXL":
-                                var hvaName = file.Replace(Path.GetExtension(file), ".hva");
-                                if (File.Exists(hvaName)) {
-                                    MotLib = new HVA(hvaName);
+                                LoadedVoxels.Clear();
+                                VoxelFrame = 0;
 
-                                    Voxel = new VXL(file);
+                                var body = VoxLib.Create(file);
+                                if(body != null) {
+                                    var turname = file.Replace(Path.GetExtension(file), "tur.vxl");
+                                    var turret = VoxLib.Create(turname);
+
+                                    var barlname = file.Replace(Path.GetExtension(file), "barl.vxl");
+                                    var barrel = VoxLib.Create(barlname);
+
                                     VoxelChanged = true;
-                                    VoxelFrame = 0;
 
-                                    Console.WriteLine("Loaded VXL with {0} sections", Voxel.Sections.Count);
+                                    LoadedVoxels.Add(body);
+                                    if (turret != null) {
+                                        LoadedVoxels.Add(turret);
+                                    }
+                                    if (barrel != null) {
+                                        LoadedVoxels.Add(barrel);
+                                    }
 
-                                    Voxel.SetHVA(MotLib);
-
-                                } else {
-                                    System.Windows.Forms.MessageBox.Show(String.Format("Failed to load HVA file corresponding to VXL {0} ({1})", file, hvaName));
+                                    Console.WriteLine("Loaded VXL with {0} sections", LoadedVoxels.Sum(v => v.Voxel.Sections.Count));
                                 }
                                 break;
                         }
@@ -270,8 +278,8 @@ namespace CnCpp {
                 effect.LightingEnabled = !effect.LightingEnabled;
             }
 
-            if (Voxel != null) {
-                var fcount = (int)(MotLib.Header.FrameCount - 1);
+            if (LoadedVoxels.Count > 0) {
+                var fcount = (int)(LoadedVoxels[0].MotLib.Header.FrameCount - 1);
                 if (kState.IsKeyDown(Keys.Z)) {
                     if (VoxelFrame < fcount) {
                         ++VoxelFrame;
@@ -341,9 +349,27 @@ namespace CnCpp {
             if (VoxelChanged) {
                 VoxelChanged = false;
                 if (MousePalette != null) {
-                    Voxel.GetVertices(MousePalette, VoxelFrame, out VoxelContent, out VoxelIndices);
+                    var combinedVertices = new List<VXL.VertexPositionColorNormal>();
+                    var combinedIndices = new List<int>();
 
-                    Console.WriteLine("Loaded {0} vertices and {1} indices", VoxelContent.Length, VoxelIndices.Length);
+                    foreach (var V in LoadedVoxels) {
+                        var Vertices = new List<VXL.VertexPositionColorNormal>();
+                        var Indices = new List<int>();
+
+                        V.Voxel.GetVertices(MousePalette, VoxelFrame, Vertices, Indices);
+
+                        var indexShift = combinedVertices.Count;
+
+                        combinedVertices.AddRange(Vertices);
+
+                        combinedIndices.AddRange(Indices.Select(ix => ix + indexShift));
+                      //  break;
+                    }
+
+                    VoxelContent = combinedVertices.ToArray();
+                    VoxelIndices = combinedIndices.ToArray();
+
+                    //Console.WriteLine("Loaded {0} vertices and {1} indices", VoxelContent.Length, VoxelIndices.Length);
 
                     if (vertexBuffer != null) {
                         vertexBuffer.Dispose();

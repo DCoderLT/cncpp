@@ -990,22 +990,39 @@ namespace CCClasses.FileFormats.Binary {
             return true;
         }
 
-        public void GetVertices(PAL Palette, int FrameIdx, out VertexPositionColorNormal[] Vertices, out int[] Indices) {
-            var AllVertices = new List<VertexPositionColorNormal>();
-            var AllIndices = new List<int>();
-
+        public void GetVertices(PAL Palette, int FrameIdx, List<VertexPositionColorNormal> Vertices, List<int> Indices) {
             for (var i = 0; i < Sections.Count; ++i) {
                 var s = Sections[i];
-                var lastVertice = AllVertices.Count;
 
                 var hvaSection = MotLib != null ? MotLib.Sections[i] : null;
 
-                s.GetVertices(hvaSection, FrameIdx, Palette, AllVertices, AllIndices);
+                s.GetVertices(hvaSection, FrameIdx, Palette, Vertices, Indices);
             }
-
-            Vertices = AllVertices.ToArray();
-            Indices = AllIndices.ToArray();
         }
 
+    }
+
+    public class VoxLib {
+        public HVA MotLib;
+        public VXL Voxel;
+        public int Frame;
+
+        public VoxLib(String VXLName, String HVAName) {
+            MotLib = new HVA(HVAName);
+            Voxel = new VXL(VXLName);
+            Frame = 0;
+
+            Voxel.SetHVA(MotLib);
+        }
+
+        public static VoxLib Create(String VXLName, String HVAName = null) {
+            if (HVAName == null) {
+                HVAName = VXLName.Replace(Path.GetExtension(VXLName), ".hva");
+            }
+            if (File.Exists(VXLName) && File.Exists(HVAName)) {
+                return new VoxLib(VXLName, HVAName);
+            }
+            return null;
+        }
     }
 }
