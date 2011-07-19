@@ -51,6 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FileFormats\Binary\HVA.cs" />
+    <Compile Include="FileFormats\Binary\TMP.cs" />
     <Compile Include="FileFormats\Binary\VXL.cs" />
     <Compile Include="FileFormats\IFileFormat.cs" />
     <Compile Include="FileFormats\Text\INI.cs" />
