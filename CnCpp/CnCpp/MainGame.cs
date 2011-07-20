@@ -28,6 +28,9 @@ namespace CnCpp {
         private SHP MouseTextures;
         private PAL MousePalette;
 
+        private TMP Tile;
+        private Texture2D TileTexture;
+
         private INI INIFile;
 
         private Texture2D CurrentMouseTexture;
@@ -187,6 +190,22 @@ namespace CnCpp {
                                     }
 
                                     Console.WriteLine("Loaded VXL with {0} sections", LoadedVoxels.Sum(v => v.Voxel.Sections.Count));
+                                }
+                                break;
+
+                            case ".TMP":
+                            case ".SNO":
+                            case ".URB":
+                            case ".UBN":
+                            case ".LUN":
+                            case ".DES":
+                                if (MousePalette != null) {
+                                    
+                                    Tile = new TMP(file);
+
+                                    Console.WriteLine("Loaded TMP with {0} tiles", Tile.Tiles.Count);
+
+                                    TileTexture = Tile.GetTexture(GraphicsDevice, MousePalette);
                                 }
                                 break;
                         }
@@ -419,6 +438,14 @@ namespace CnCpp {
 
             //    spriteBatch.End();
             //}
+
+            if (TileTexture != null) {
+                spriteBatch.Begin();
+
+                spriteBatch.Draw(TileTexture, MousePos, Color.White);
+
+                spriteBatch.End();
+            }
 
 
             if (VoxelContent != null) {
