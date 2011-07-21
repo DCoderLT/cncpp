@@ -52,8 +52,10 @@ namespace CCClasses.FileFormats.Binary {
             public Color RadarRightColor;
 
             public byte[] Graphics;
-            public byte[] HeightData;
+            public byte[] DamagedGraphics;
+            public byte[] ZData;
             public byte[] Extras;
+            public byte[] ExtraZData;
 
             internal int Position;
 
@@ -79,7 +81,7 @@ namespace CCClasses.FileFormats.Binary {
                 var flags = BitConverter.ToUInt32(data.Array, offs + 36);
                 HasExtraData = (flags & 1) != 0;
                 HasZData = (flags & 2) != 0;
-                HasZData = (flags & 4) != 0;
+                HasDamagedData = (flags & 4) != 0;
                 Height = data.Array[offs + 40];
                 TerrainType = data.Array[offs + 41];
                 RampType = data.Array[offs + 42];
@@ -91,8 +93,23 @@ namespace CCClasses.FileFormats.Binary {
                 Graphics = new byte[GraphicsLength];
                 Buffer.BlockCopy(data.Array, offs + 52, Graphics, 0, GraphicsLength);
 
-                //HeightData = new byte[576];
-                //Buffer.BlockCopy(data.Array, offs + 52 + 576, HeightData, 0, 576);
+                if (HasDamagedData) {
+                    if (data.Array.Length - offs + 52 + 2 * GraphicsLength < GraphicsLength) {
+                        throw new IndexOutOfRangeException();
+                    }
+
+                    DamagedGraphics = new byte[GraphicsLength];
+                    Buffer.BlockCopy(data.Array, offs + 52 + GraphicsLength, DamagedGraphics, 0, GraphicsLength);
+                }
+
+                if (HasZData) {
+                    if (data.Array.Length - offs + ZOffset < GraphicsLength) {
+                        throw new IndexOutOfRangeException();
+                    }
+
+                    ZData = new byte[GraphicsLength];
+                    Buffer.BlockCopy(data.Array, offs + ZOffset, ZData, 0, GraphicsLength);
+                }
 
                 if (HasExtraData) {
                     var extraArea = ExtraWidth * ExtraHeight;
@@ -143,7 +160,7 @@ namespace CCClasses.FileFormats.Binary {
                 }
             }
 
-            internal int PixelsInRow(int y) {
+            private int PixelsInRow(int y) {
                 if (y > (BlockHeight - 2)) {
                     return 0;
                 }
@@ -153,7 +170,7 @@ namespace CCClasses.FileFormats.Binary {
                 return 4 * (y + 1);
             }
 
-            internal int FirstPixelInRow(int y) {
+            private int FirstPixelInRow(int y) {
                 if (y > (BlockHeight - 2)) {
                     return -1;
                 }
@@ -164,7 +181,7 @@ namespace CCClasses.FileFormats.Binary {
                 return BlockHeight - 2 * (y + 1);
             }
 
-            internal int IndexOfPixel(int x, int y) {
+            private int IndexOfPixel(int x, int y) {
                 if (y > BlockHeight - 2) {
                     return -1;
                 }
@@ -307,11 +324,7 @@ namespace CCClasses.FileFormats.Binary {
 
         public Texture2D GetTexture(GraphicsDevice gd, PAL Palette) {
             var bounds = GetBounds();
-
-            for (var i = 0; i < Header.BlockHeight; ++i) {
-                Console.WriteLine("Line {0} should contain {1} ({2}) pixels", i, Tiles[0].PixelsInRow(i), Tiles[0].FirstPixelInRow(i));
-            }
-
+            
             var t = new Texture2D(gd, bounds.Width, bounds.Height, false, SurfaceFormat.Color);
 
             var data = new Color[bounds.Width * bounds.Height];
