@@ -208,6 +208,15 @@ namespace CnCpp {
                                     TileTexture = Tile.GetTexture(GraphicsDevice, MousePalette);
                                 }
                                 break;
+
+
+                            case ".YRM":
+                            case ".MAP":
+                                var map = new MAP(file);
+
+                                Console.WriteLine("Loaded a map {0} with {1} tiles", file, map.Tiles.Count);
+
+                                break;
                         }
 
                     }

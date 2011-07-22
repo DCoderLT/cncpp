@@ -93,10 +93,6 @@ namespace CCClasses.FileFormats.Text {
                 if (comment != -1) {
                     line = line.Substring(0, comment > 0 ? comment - 1 : 0);
                 }
-                comment = line.IndexOf("//");
-                if (comment != -1) {
-                    line = line.Substring(0, comment > 0 ? comment - 1 : 0);
-                }
                 line = line.TrimEnd();
                 if (line.Length > 0) {
                     if (line[0] == '[') { // [section]
@@ -205,6 +201,20 @@ namespace CCClasses.FileFormats.Text {
                 }
             }
             return false;
+        }
+
+        public string ReadSection(string Section) {
+            String allContent = "";
+
+            if (!SectionExists(Section)) {
+                throw new ArgumentException();
+            }
+
+            foreach (var Entry in Sections[Section].Entries) {
+                allContent += Entry.Value.Value;
+            }
+
+            return allContent;
         }
     }
 }

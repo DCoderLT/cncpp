@@ -59,8 +59,10 @@
     <Compile Include="FileFormats\Binary\MIX_Magic.cs" />
     <Compile Include="FileFormats\Binary\PAL.cs" />
     <Compile Include="FileFormats\Binary\SHP.cs" />
+    <Compile Include="FileFormats\Text\MAP.cs" />
     <Compile Include="Libraries\Blowfish.cs" />
     <Compile Include="Libraries\Crc32.cs" />
+    <Compile Include="Libraries\LZOCompressor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
