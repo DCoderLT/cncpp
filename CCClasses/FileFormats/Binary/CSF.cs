@@ -5,8 +5,10 @@ using System.Text;
 using System.IO;
 
 namespace CCClasses.FileFormats.Binary {
-    public class FileHeader {
-        public static readonly List<String> Languages = new List<string>() {
+    public class CSF : BinaryFileFormat {
+
+        public class FileHeader {
+            public static readonly List<String> Languages = new List<string>() {
             "US (English)",
             "UK (English)",
             "German",
@@ -20,157 +22,156 @@ namespace CCClasses.FileFormats.Binary {
             "Unknown",
         };
 
-        public const int ByteSize = 24;
-        public int Version;
-        public int NumValues;
-        public int NumExtraValues;
-        public int Unused;
-        public int Language;
+            public const int ByteSize = 24;
+            public int Version;
+            public int NumValues;
+            public int NumExtraValues;
+            public int Unused;
+            public int Language;
 
-        public String LanguageLabel {
-            get {
-                if (Language >= Languages.Count - 1) {
-                    return Languages[Languages.Count - 1];
+            public String LanguageLabel {
+                get {
+                    if (Language >= Languages.Count - 1) {
+                        return Languages[Languages.Count - 1];
+                    }
+                    return Languages[Language];
                 }
-                return Languages[Language];
-            }
-        }
-
-        public bool ReadFile(BinaryReader r) {
-            String Identifier = CSF.ReadCString(r, 4);
-
-            if (!Identifier.Equals(" FSC")) {
-                return false;
             }
 
-            Version = r.ReadInt32();
+            public bool ReadFile(BinaryReader r) {
+                String Identifier = CSF.ReadCString(r, 4);
 
-            if (Version != 3) {
-                return false;
-            }
-
-            NumValues = r.ReadInt32();
-
-            NumExtraValues = r.ReadInt32();
-
-            Unused = r.ReadInt32();
-
-            Language = r.ReadInt32();
-
-            return true;
-        }
-    };
-
-    public class CSFValue {
-        public String Plain = "?";
-        public String Extra = "?";
-    }
-
-    public class Label {
-        public const int ByteSize = 0xC;
-
-        public int StringCount;
-        public String ID;
-
-        public List<CSFValue> Values = new List<CSFValue>();
-
-        public String Val {
-            get {
-                return Values[0].Plain;
-            }
-        }
-
-        public String ExtraVal {
-            get {
-                return Values[0].Extra;
-            }
-        }
-
-        public bool ReadFile(ArraySegment<byte> data, ref int size) {
-            var offs = data.Offset;
-
-            String Identifier = CSF.ReadCString(data, 4, offs);
-            offs += 4;
-
-            if (!Identifier.Equals(" LBL")) {
-                return false;
-            }
-
-            StringCount = BitConverter.ToInt32(data.Array, offs);
-            offs += 4;
-
-            uint LabelLength = BitConverter.ToUInt32(data.Array, offs);
-            offs += 4;
-
-            if (offs + LabelLength > data.Array.Length) {
-                return false;
-            }
-
-            ID = CSF.ReadCString(data, LabelLength, offs);
-            offs += (int)LabelLength;
-
-            for (var ixStr = 0; ixStr < StringCount; ++ixStr) {
-                if (offs + 8 > data.Array.Length) {
+                if (!Identifier.Equals(" FSC")) {
                     return false;
                 }
 
-                String strIdent = CSF.ReadCString(data, 4, offs);
+                Version = r.ReadInt32();
+
+                if (Version != 3) {
+                    return false;
+                }
+
+                NumValues = r.ReadInt32();
+
+                NumExtraValues = r.ReadInt32();
+
+                Unused = r.ReadInt32();
+
+                Language = r.ReadInt32();
+
+                return true;
+            }
+        };
+
+        public class CSFValue {
+            public String Plain = "?";
+            public String Extra = "?";
+        }
+
+        public class Label {
+            public const int ByteSize = 0xC;
+
+            public int StringCount;
+            public String ID;
+
+            public List<CSFValue> Values = new List<CSFValue>();
+
+            public String Val {
+                get {
+                    return Values[0].Plain;
+                }
+            }
+
+            public String ExtraVal {
+                get {
+                    return Values[0].Extra;
+                }
+            }
+
+            public bool ReadFile(ArraySegment<byte> data, ref int size) {
+                var offs = data.Offset;
+
+                String Identifier = CSF.ReadCString(data, 4, offs);
                 offs += 4;
 
-                var isPlain = strIdent.Equals(" RTS");
-                var isExtended = strIdent.Equals("WRTS");
+                if (!Identifier.Equals(" LBL")) {
+                    return false;
+                }
 
-                if (isPlain || isExtended) {
-                    var Val = new CSFValue();
+                StringCount = BitConverter.ToInt32(data.Array, offs);
+                offs += 4;
 
-                    var VLen = BitConverter.ToInt32(data.Array, offs);
-                    offs += 4;
+                uint LabelLength = BitConverter.ToUInt32(data.Array, offs);
+                offs += 4;
 
-                    if (offs + VLen * 2 > data.Array.Length) {
+                if (offs + LabelLength > data.Array.Length) {
+                    return false;
+                }
+
+                ID = CSF.ReadCString(data, LabelLength, offs);
+                offs += (int)LabelLength;
+
+                for (var ixStr = 0; ixStr < StringCount; ++ixStr) {
+                    if (offs + 8 > data.Array.Length) {
                         return false;
                     }
 
-                    for (var i = 0; i < VLen; ++i) {
-                        var raw = BitConverter.ToUInt16(data.Array, offs);
-                        offs += 2;
-                        raw ^= 0xFFFF;
+                    String strIdent = CSF.ReadCString(data, 4, offs);
+                    offs += 4;
 
-                        Val.Plain += (char)raw;
-                    }
+                    var isPlain = strIdent.Equals(" RTS");
+                    var isExtended = strIdent.Equals("WRTS");
 
-                    if (isExtended) {
-                        if (offs + 4 > data.Array.Length) {
-                            return false;
-                        }
+                    if (isPlain || isExtended) {
+                        var Val = new CSFValue();
 
-                        var XLen = BitConverter.ToUInt32(data.Array, offs);
+                        var VLen = BitConverter.ToInt32(data.Array, offs);
                         offs += 4;
 
-                        if (offs + XLen > data.Array.Length) {
+                        if (offs + VLen * 2 > data.Array.Length) {
                             return false;
                         }
 
-                        Val.Extra = CSF.ReadCString(data, XLen, offs);
-                        offs += (int)XLen;
+                        for (var i = 0; i < VLen; ++i) {
+                            var raw = BitConverter.ToUInt16(data.Array, offs);
+                            offs += 2;
+                            raw ^= 0xFFFF;
+
+                            Val.Plain += (char)raw;
+                        }
+
+                        if (isExtended) {
+                            if (offs + 4 > data.Array.Length) {
+                                return false;
+                            }
+
+                            var XLen = BitConverter.ToUInt32(data.Array, offs);
+                            offs += 4;
+
+                            if (offs + XLen > data.Array.Length) {
+                                return false;
+                            }
+
+                            Val.Extra = CSF.ReadCString(data, XLen, offs);
+                            offs += (int)XLen;
+                        }
+
+                        Values.Add(Val);
+
+                    } else {
+                        return false;
                     }
 
-                    Values.Add(Val);
-
-                } else {
-                    return false;
                 }
 
+                size = offs - data.Offset;
+
+                return true;
             }
+        };
 
-            size = offs - data.Offset;
-
-            return true;
-        }
-    };
-
-    public class CSF : BinaryFileFormat {
-
-        public CSF(String filename) : base(filename) {
+        public CSF(String filename)
+            : base(filename) {
         }
 
         public FileHeader Header = new FileHeader();
