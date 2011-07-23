@@ -50,6 +50,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FileFormats\Binary\CSF.cs" />
     <Compile Include="FileFormats\Binary\HVA.cs" />
     <Compile Include="FileFormats\Binary\TMP.cs" />
     <Compile Include="FileFormats\Binary\VXL.cs" />
@@ -62,7 +63,8 @@
     <Compile Include="FileFormats\Text\MAP.cs" />
     <Compile Include="Libraries\Blowfish.cs" />
     <Compile Include="Libraries\Crc32.cs" />
-    <Compile Include="Libraries\LZOCompressor.cs" />
+    <Compile Include="Libraries\LCW.cs" />
+    <Compile Include="Libraries\LZO.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

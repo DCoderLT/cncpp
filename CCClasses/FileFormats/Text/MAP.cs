@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using CCClasses.Libraries;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace CCClasses.FileFormats.Text {
     public class MAP : TextFileFormat {
@@ -12,7 +14,7 @@ namespace CCClasses.FileFormats.Text {
             public Int16 X;
             public Int16 Y;
             public UInt32 TileTypeIndex;
-            public byte Height;
+            public byte TileSubtypeIndex;
             public byte Level;
             public byte Unknown;
 
@@ -21,7 +23,7 @@ namespace CCClasses.FileFormats.Text {
                 X = BitConverter.ToInt16(data.Array, offs);
                 Y = BitConverter.ToInt16(data.Array, offs + 2);
                 TileTypeIndex = BitConverter.ToUInt32(data.Array, offs + 4);
-                Height = data.Array[offs + 8];
+                TileSubtypeIndex = data.Array[offs + 8];
                 Level = data.Array[offs + 9];
                 Unknown = data.Array[offs + 10];
             }
@@ -34,8 +36,14 @@ namespace CCClasses.FileFormats.Text {
 
         private byte[] IsoMapPack;
 
+        public Rectangle PreviewSize;
+        public Color[] Preview;
+        private byte[] PreviewPack;
+
+
         public List<TilePacked> Tiles = new List<TilePacked>();
 
+        public List<int> Overlays = new List<int>();
 
         public override bool ReadFile(String filename) {
             MapINI = new INI(filename);
@@ -44,43 +52,7 @@ namespace CCClasses.FileFormats.Text {
                 return false;
             }
 
-            var MappackCompressed = MapINI.ReadSection("IsoMapPack5");
-
-            var MappackUn64 = Convert.FromBase64String(MappackCompressed);
-
-            var unpacked = new List<byte>();
-
-            var offs = 0;
-            while (offs < MappackUn64.Length) {
-                int InputSize = BitConverter.ToInt16(MappackUn64, offs);
-                int OutputSize = BitConverter.ToInt16(MappackUn64, offs + 2);
-                offs += 4;
-                if (offs + InputSize < MappackUn64.Length) {
-                    var Input = new byte[InputSize];
-                    Buffer.BlockCopy(MappackUn64, offs, Input, 0, InputSize);
-
-                    var Output = new byte[OutputSize * 2];
-
-                    //if (LZO.Decompress_XCC(Input, ref Output) != 0) {
-                    //    throw new InvalidDataException();
-                    //}
-
-                    var wmem = new byte[0x80000];
-
-                    int decompressedSize = 0;
-
-                    Simplicit.Net.Lzo.LZOCompressor.lzo1x_decompress(Input, InputSize, Output, ref decompressedSize, wmem);
-
-                    if (decompressedSize != OutputSize) {
-                        throw new InvalidDataException();
-                    }
-
-                    unpacked.AddRange(Output.Take(OutputSize));
-                }
-                offs += InputSize;
-            }
-            
-            IsoMapPack = unpacked.ToArray();
+            IsoMapPack = UnpackSectionLZO("IsoMapPack5");
 
             var TileCount = IsoMapPack.Length / TilePacked.ByteSize;
 
@@ -94,7 +66,66 @@ namespace CCClasses.FileFormats.Text {
                 Tiles.Add(T);
             }
 
+            if (MapINI.SectionExists("Preview") && MapINI.SectionExists("PreviewPack")) {
+                int[] PSize;
+                if (MapINI.Get4Integers("Preview", "Size", out PSize, new int[4])) {
+                    PreviewSize = new Rectangle(PSize[0], PSize[1], PSize[2], PSize[3]);
+                    if (PreviewSize.Width > 0 && PreviewSize.Height > 0) {
+                        Preview = new Color[PreviewSize.Width * PreviewSize.Height];
+                        PreviewPack = UnpackSectionLZO("PreviewPack");
+
+                        var pixelCount = PreviewPack.Length / 3;
+
+                        for (var y = 0; y < PreviewSize.Height; ++y) {
+                            for (var x = 0; x < PreviewSize.Width; ++x) {
+                                var ixPix = y * PreviewSize.Width + x;
+                                if (ixPix < pixelCount) {
+                                    var R = PreviewPack[ixPix * 3];
+                                    var G = PreviewPack[ixPix * 3 + 1];
+                                    var B = PreviewPack[ixPix * 3 + 2];
+                                    Preview[ixPix] = new Color(R, G, B);
+                                } else {
+                                    Preview[ixPix] = Color.Black;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (MapINI.SectionExists("OverlayPack")) {
+                Overlays.Clear();
+                var unpackedOverlays = UnpackSectionLCW("OverlayPack");
+                foreach (var ixOverlay in unpackedOverlays) {
+                    Overlays.Add(ixOverlay);
+                }
+            }
+
             return true;
+        }
+
+        private byte[] UnpackSectionLZO(String Section) {
+            var Compressed = MapINI.ReadSection(Section);
+
+            var Un64 = Convert.FromBase64String(Compressed);
+
+            return LZO.Slurp(Un64);
+        }
+
+        private byte[] UnpackSectionLCW(String Section) {
+            var Compressed = MapINI.ReadSection(Section);
+
+            var Un64 = Convert.FromBase64String(Compressed);
+
+            return LCW.Slurp(Un64);
+        }
+
+        public Microsoft.Xna.Framework.Graphics.Texture2D GetPreviewTexture(Microsoft.Xna.Framework.Graphics.GraphicsDevice GraphicsDevice) {
+            var MapPreview = new Texture2D(GraphicsDevice, PreviewSize.Width, PreviewSize.Height, false, SurfaceFormat.Color);
+
+            MapPreview.SetData(Preview);
+
+            return MapPreview;
         }
     }
 }

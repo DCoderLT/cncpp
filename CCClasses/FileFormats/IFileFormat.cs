@@ -76,10 +76,12 @@ namespace CCClasses {
             return s;
         }
 
-        public static String ReadCString(ArraySegment<byte> r, uint len) {
+        public static String ReadCString(ArraySegment<byte> r, uint len, int offset = -1) {
             String s = "";
             bool read = true;
-            var offset = r.Offset;
+            if (offset == -1) {
+                offset = r.Offset;
+            }
             for (var i = 0u; i < len; ++i) {
                 char c = (char)r.Array[offset + i];
                 if (c != 0) {

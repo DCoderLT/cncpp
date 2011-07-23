@@ -54,6 +54,8 @@ namespace CnCpp {
         VertexBuffer vertexBuffer;
         IndexBuffer indexBuffer;
 
+        private Texture2D MapPreview;
+
 
         private int defOX = 0, defOY = 0;
         private Vector3 defRotation = new Vector3(MathHelper.PiOver4, -1 * MathHelper.PiOver4, -3 * MathHelper.PiOver4);
@@ -215,6 +217,19 @@ namespace CnCpp {
                                 var map = new MAP(file);
 
                                 Console.WriteLine("Loaded a map {0} with {1} tiles", file, map.Tiles.Count);
+
+                                if (map.Preview != null) {
+                                    MapPreview = map.GetPreviewTexture(GraphicsDevice);
+                                } else {
+                                    MapPreview = null;
+                                }
+
+                                break;
+
+                            case ".CSF":
+                                var lbl = new CSF(file);
+
+                                Console.WriteLine("Loaded string table with {0} entries", lbl.Labels.Count);
 
                                 break;
                         }
@@ -452,6 +467,14 @@ namespace CnCpp {
                 spriteBatch.Begin();
 
                 spriteBatch.Draw(TileTexture, MousePos, Color.White);
+
+                spriteBatch.End();
+            }
+
+            if (MapPreview != null) {
+                spriteBatch.Begin();
+
+                spriteBatch.Draw(MapPreview, MousePos, Color.White);
 
                 spriteBatch.End();
             }

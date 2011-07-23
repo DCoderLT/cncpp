@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.IO;
 using System.Globalization;
+using System.Diagnostics;
 
 namespace CCClasses.FileFormats.Text {
     public class INIEntry {
@@ -137,6 +138,20 @@ namespace CCClasses.FileFormats.Text {
         }
 
 
+        public string ReadSection(string Section) {
+            String allContent = "";
+
+            if (!SectionExists(Section)) {
+                throw new ArgumentException();
+            }
+
+            foreach (var Entry in Sections[Section].Entries) {
+                allContent += Entry.Value.Value;
+            }
+
+            return allContent;
+        }
+
 
         public bool GetString(String Section, String Key, out String Result, String Default) {
             Result = Default;
@@ -203,18 +218,26 @@ namespace CCClasses.FileFormats.Text {
             return false;
         }
 
-        public string ReadSection(string Section) {
-            String allContent = "";
+        public bool Get4Integers(string Section, string Key, out int[] Result, int[] Default) {
+            String s;
+            Result = Default;
+            Debug.Assert(Default.Length == 4, "Get4Integers requires a default value of 4 integers...");
 
-            if (!SectionExists(Section)) {
-                throw new ArgumentException();
+            if (GetString(Section, Key, out s, "")) {
+                var tokens = s.Split(',');
+                if (tokens.Length == 4) {
+                    for (var i = 0; i <= 3; ++i) {
+                        int num;
+                        String token = tokens[i];
+                        if (!Int32.TryParse(token, out num)) {
+                            break;
+                        }
+                        Result[i] = num;
+                    }
+                    return true;
+                }
             }
-
-            foreach (var Entry in Sections[Section].Entries) {
-                allContent += Entry.Value.Value;
-            }
-
-            return allContent;
+            return false;
         }
     }
 }
