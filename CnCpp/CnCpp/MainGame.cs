@@ -232,6 +232,21 @@ namespace CnCpp {
                                 Console.WriteLine("Loaded string table with {0} entries", lbl.Labels.Count);
 
                                 break;
+
+
+                            case ".IDX":
+                                var idx = new IDX(file);
+
+                                Console.WriteLine("Loaded IDX with {0} samples", idx.Samples.Count);
+
+                                var bagFile = file.Replace(Path.GetExtension(file), ".BAG");
+                                if (File.Exists(bagFile)) {
+                                    var Bag = new BAG(bagFile);
+                                    var pcm = idx.Samples[0].GetPCM();
+                                    pcm.Compile(Bag.Segment);
+                                }
+
+                                break;
                         }
 
                     }
