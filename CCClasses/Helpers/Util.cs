@@ -3,8 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace CCClasses {
+namespace CCClasses.Helpers {
     public class Util {
+        public static UInt32 ReverseEndian(UInt32 input) {
+            UInt32 output = 0;
+
+            var bytes = Bytes((int)input);
+            output = (uint)((bytes[0] << 24) | (bytes[1] << 16) | (bytes[2] << 8) | (bytes[3]));
+
+            return output;
+        }
+
         public static byte[] Bytes(int input) {
             var result = new byte[4];
 
@@ -33,5 +42,6 @@ namespace CCClasses {
             data.Array[o + 2] = bytes[2];
             data.Array[o + 3] = bytes[3];
         }
+
     }
 }

@@ -16,11 +16,13 @@ namespace CCClasses.FileFormats.Binary {
         }
 
         private ArraySegment<byte> _Segment;
+        private bool SegmentInitialized = false;
 
         public ArraySegment<byte> Segment {
             get {
-                if(_Segment == null) {
+                if (!SegmentInitialized) {
                     _Segment = new ArraySegment<byte>(Data);
+                    SegmentInitialized = true;
                 }
                 return _Segment;
             }

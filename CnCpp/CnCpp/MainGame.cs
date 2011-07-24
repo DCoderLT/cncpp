@@ -13,6 +13,7 @@ using CCClasses;
 using CCClasses.FileFormats;
 using CCClasses.FileFormats.Text;
 using CCClasses.FileFormats.Binary;
+using CCClasses.Helpers;
 
 namespace CnCpp {
     /// <summary>
@@ -239,12 +240,28 @@ namespace CnCpp {
 
                                 Console.WriteLine("Loaded IDX with {0} samples", idx.Samples.Count);
 
-                                var bagFile = file.Replace(Path.GetExtension(file), ".BAG");
-                                if (File.Exists(bagFile)) {
-                                    var Bag = new BAG(bagFile);
-                                    var pcm = idx.Samples[0].GetPCM();
-                                    pcm.Compile(Bag.Segment);
-                                }
+                                //var bagFile = file.Replace(Path.GetExtension(file), ".BAG");
+                                //if (File.Exists(bagFile)) {
+                                //    var Bag = new BAG(bagFile);
+
+                                //    var samplesToExtract = new List<String>() { "ichratc", "ichratta" };
+
+                                //    foreach (var s in samplesToExtract) {
+                                //        var sample = idx.Samples[s];
+                                //        if (sample != null) {
+                                //            var output = sample.GetWaveHeader().Compile(Bag.Segment);
+
+                                //            var outFile = Path.GetDirectoryName(file) + Path.DirectorySeparatorChar + sample.Name + ".WAV";
+
+                                //            using (var outWav = File.OpenWrite(outFile)) {
+                                //                using (var writer = new BinaryWriter(outWav)) {
+                                //                    writer.Write(output);
+                                //                    writer.Flush();
+                                //                }
+                                //            }
+                                //        }
+                                //    }
+                                //}
 
                                 break;
                         }

@@ -63,12 +63,13 @@
     <Compile Include="FileFormats\Binary\PAL.cs" />
     <Compile Include="FileFormats\Binary\SHP.cs" />
     <Compile Include="FileFormats\Text\MAP.cs" />
+    <Compile Include="Helpers\Extensions.cs" />
     <Compile Include="Libraries\Blowfish.cs" />
     <Compile Include="Libraries\Crc32.cs" />
     <Compile Include="Libraries\LCW.cs" />
     <Compile Include="Libraries\LZO.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Util.cs" />
+    <Compile Include="Helpers\Util.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
