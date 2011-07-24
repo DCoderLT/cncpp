@@ -240,28 +240,42 @@ namespace CnCpp {
 
                                 Console.WriteLine("Loaded IDX with {0} samples", idx.Samples.Count);
 
-                                //var bagFile = file.Replace(Path.GetExtension(file), ".BAG");
-                                //if (File.Exists(bagFile)) {
-                                //    var Bag = new BAG(bagFile);
+                                var bagFile = file.Replace(Path.GetExtension(file), ".BAG");
+                                if (File.Exists(bagFile)) {
+                                    var Bag = new BAG(bagFile);
+                                    idx.ReadBAG(Bag);
 
-                                //    var samplesToExtract = new List<String>() { "ichratc", "ichratta" };
+                                    var soundPlayer = new libZPlay.ZPlay();
 
-                                //    foreach (var s in samplesToExtract) {
-                                //        var sample = idx.Samples[s];
-                                //        if (sample != null) {
-                                //            var output = sample.GetWaveHeader().Compile(Bag.Segment);
+                                    var samplesToExtract = new List<String>() { /*"ichratc", */"ichratta" };
 
-                                //            var outFile = Path.GetDirectoryName(file) + Path.DirectorySeparatorChar + sample.Name + ".WAV";
+                                    foreach (var s in samplesToExtract) {
+                                        var sample = idx.Samples[s];
+                                        if (sample != null) {
+                                            var output = sample.GetWaveHeader().Compile();
 
-                                //            using (var outWav = File.OpenWrite(outFile)) {
-                                //                using (var writer = new BinaryWriter(outWav)) {
-                                //                    writer.Write(output);
-                                //                    writer.Flush();
-                                //                }
-                                //            }
-                                //        }
-                                //    }
-                                //}
+                                            var outFile = Path.GetDirectoryName(file) + Path.DirectorySeparatorChar + sample.Name + ".WAV";
+
+                                            using (var outWav = File.OpenWrite(outFile)) {
+                                                using (var writer = new BinaryWriter(outWav)) {
+                                                    writer.Write(output);
+                                                    writer.Flush();
+                                                }
+                                            }
+
+                                            if (!soundPlayer.OpenStream(false, false, ref output, (uint)output.Length, libZPlay.TStreamFormat.sfWav)) {
+                                                Console.WriteLine("Sound failed: {0}.", soundPlayer.GetError());
+                                                break;
+                                            }
+
+                                            if (!soundPlayer.StartPlayback()) {
+                                                Console.WriteLine("Sound failed: {0}.", soundPlayer.GetError());
+                                                break;
+                                            }
+
+                                        }
+                                    }
+                                }
 
                                 break;
                         }

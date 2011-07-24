@@ -73,7 +73,7 @@ namespace CCClasses.FileFormats.Binary {
 
             public int ChannelCount {
                 get {
-                    return IDXSample.Flags.HasFlag(SampleHeader.SampleFlags.Stereo) ? 2 : 1;
+                    return IDXSample.ChannelCount;
                 }
             }
 
@@ -83,57 +83,66 @@ namespace CCClasses.FileFormats.Binary {
                 }
             }
 
-            public byte[] Compile(ArraySegment<byte> bag) {
-                Int32 dataLen = FileHeaderSize + IDXSample.Size;
-                var data = new byte[dataLen];
+            protected byte[] wavStream;
+            protected bool wavStreamInitialized = false;
+            public byte[] Compile() {
+                if (!wavStreamInitialized) {
+                    CompileStream();
+                    wavStreamInitialized = true;
+                    IDXSample.Data = new byte[0];
+                }
+                return wavStream;
+            }
 
-                var seg = new ArraySegment<byte>(data, 0, 4);
+            protected void CompileStream() {
+                Int32 dataLen = FileHeaderSize + IDXSample.Size;
+                wavStream = new byte[dataLen];
+
+                var seg = new ArraySegment<byte>(wavStream, 0, 4);
                 Util.WriteInt(seg, (Int32)hRIFF);
 
-                seg = new ArraySegment<byte>(data, 4, 4);
-                Util.WriteInt(seg, dataLen);
+                seg = new ArraySegment<byte>(wavStream, 4, 4);
+                Util.WriteInt(seg, dataLen - 8);
 
-                seg = new ArraySegment<byte>(data, 8, 4);
+                seg = new ArraySegment<byte>(wavStream, 8, 4);
                 Util.WriteInt(seg, (Int32)hWAVE);
 
-                seg = new ArraySegment<byte>(data, 12, 4);
+                seg = new ArraySegment<byte>(wavStream, 12, 4);
                 Util.WriteInt(seg, (Int32)hFMT);
 
-                seg = new ArraySegment<byte>(data, 16, 4);
+                seg = new ArraySegment<byte>(wavStream, 16, 4);
                 Util.WriteInt(seg, 16 + FmtExtraSize);
 
-                seg = new ArraySegment<byte>(data, 20, 2);
+                seg = new ArraySegment<byte>(wavStream, 20, 2);
                 Util.WriteInt(seg, (Int16)Format);
 
-                seg = new ArraySegment<byte>(data, 22, 2);
+                seg = new ArraySegment<byte>(wavStream, 22, 2);
                 Util.WriteInt(seg, (Int16)ChannelCount);
 
-                seg = new ArraySegment<byte>(data, 24, 4);
+                seg = new ArraySegment<byte>(wavStream, 24, 4);
                 Util.WriteInt(seg, SampleRate);
 
-                seg = new ArraySegment<byte>(data, 28, 4);
+                seg = new ArraySegment<byte>(wavStream, 28, 4);
                 Util.WriteInt(seg, BytesPerSecond);
 
-                seg = new ArraySegment<byte>(data, 32, 2);
+                seg = new ArraySegment<byte>(wavStream, 32, 2);
                 Util.WriteInt(seg, BlockAlign);
 
-                seg = new ArraySegment<byte>(data, 34, 2);
+                seg = new ArraySegment<byte>(wavStream, 34, 2);
                 Util.WriteInt(seg, BitsPerSample);
 
-                int ExtraBytes = WriteExtraHeader(ref data, 36);
+                int ExtraBytes = WriteExtraHeader(ref wavStream, 36);
                 if (36 + ExtraBytes + 8 != FileHeaderSize) {
                     throw new InvalidDataException();
                 }
 
-                seg = new ArraySegment<byte>(data, FileHeaderSize - 8, 4);
+                seg = new ArraySegment<byte>(wavStream, FileHeaderSize - 8, 4);
                 Util.WriteInt(seg, (Int32)hDATA);
 
-                seg = new ArraySegment<byte>(data, FileHeaderSize - 4, 4);
+                seg = new ArraySegment<byte>(wavStream, FileHeaderSize - 4, 4);
                 Util.WriteInt(seg, IDXSample.Size);
 
-                Buffer.BlockCopy(bag.Array, IDXSample.Offset, data, FileHeaderSize, IDXSample.Size);
-
-                return data;
+                Buffer.BlockCopy(IDXSample.Data, 0, wavStream, FileHeaderSize, IDXSample.Size);
             }
 
             protected virtual int WriteExtraHeader(ref byte[] data, int offset) {
@@ -143,10 +152,11 @@ namespace CCClasses.FileFormats.Binary {
 
         public class PCMHeader : WAVHeader {
             protected const int BytesPerSample = 2;
+            public const int HeaderSize = 44;
 
             public PCMHeader(SampleHeader S) : base(S) {
                 Format = 1;
-                FileHeaderSize = 44;
+                FileHeaderSize = HeaderSize;
             }
 
             protected override int BytesPerSecond {
@@ -177,9 +187,10 @@ namespace CCClasses.FileFormats.Binary {
         public class ADPCMHeader : WAVHeader {
             protected const Int16 ExtraValue = 1017;
             protected static readonly UInt32 hFACT = Util.ReverseEndian(0x66616374);
+            public const int HeaderSize = 60;
 
             public ADPCMHeader(SampleHeader S) : base(S) {
-                FileHeaderSize = 60;
+                FileHeaderSize = HeaderSize;
                 FmtExtraSize = 4;
                 Format = 0x11;
             }
@@ -236,6 +247,12 @@ namespace CCClasses.FileFormats.Binary {
                 ADPCM = 0x8,
             };
 
+            public int ChannelCount {
+                get {
+                    return Flags.HasFlag(SampleHeader.SampleFlags.Stereo) ? 2 : 1;
+                }
+            }
+
             public const int ByteSize = 36;
 
             public String Name;
@@ -244,6 +261,8 @@ namespace CCClasses.FileFormats.Binary {
             public int SampleRate;
             public SampleFlags Flags;
             public int ChunkSize;
+
+            internal byte[] Data;
 
             public void ReadFile(ArraySegment<byte> data, bool NewVersion) {
                 var offs = data.Offset;
@@ -269,6 +288,24 @@ namespace CCClasses.FileFormats.Binary {
                     throw new InvalidDataException();
                 }
             }
+
+            internal bool ADPCM2PCM() {
+                if (!Flags.HasFlag(SampleFlags.ADPCM)) {
+                    return false;
+                }
+
+                Flags &= ~SampleFlags.ADPCM;
+                Flags |= SampleFlags.PCM;
+
+                Data = WAV.ADPCM2PCM(Data, ChannelCount, ChunkSize);
+
+                Size = Data.Length;
+                Offset = 0;
+
+                ChunkSize = 0;
+
+                return true;
+            }
         };
 
         public IDXHeader Header = new IDXHeader();
@@ -286,7 +323,6 @@ namespace CCClasses.FileFormats.Binary {
                 return null;
             }
         }
-
 
         public override bool ReadFile(BinaryReader r, long length) {
             if (length < IDXHeader.ByteSize) {
@@ -318,6 +354,15 @@ namespace CCClasses.FileFormats.Binary {
             }
 
             return true;
+        }
+
+        public void ReadBAG(BAG bag) {
+            foreach (var S in Samples) {
+                var data = new byte[S.Value.Size];
+                Buffer.BlockCopy(bag.Data, S.Value.Offset, data, 0, S.Value.Size);
+                S.Value.Data = data;
+                S.Value.ADPCM2PCM();
+            }
         }
     }
 }

@@ -115,6 +115,9 @@
   <ItemGroup>
     <Content Include="Game.ico" />
     <Content Include="GameThumbnail.png" />
+    <None Include="libzplay.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="lzo.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
