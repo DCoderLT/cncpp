@@ -346,24 +346,24 @@ namespace CCClasses.Libraries {
         /// </summary>
         /// <param name="data">The array to decrypt.</param>
         /// <param name="length">The amount to decrypt.</param>
-        public void Decipher(byte[] data, int length) {
+        public void Decipher(byte[] data, int length, int offset = 0) {
             uint xl, xr;
             if ((length % 8) != 0)
                 throw new Exception("Invalid Length");
             for (int i = 0; i < length; i += 8) {
                 // Encode the data in 8 byte blocks.
-                xl = (uint)((data[i] << 24) | (data[i + 1] << 16) | (data[i + 2] << 8) | data[i + 3]);
-                xr = (uint)((data[i + 4] << 24) | (data[i + 5] << 16) | (data[i + 6] << 8) | data[i + 7]);
+                xl = (uint)((data[offset + i] << 24) | (data[offset + i + 1] << 16) | (data[offset + i + 2] << 8) | data[offset + i + 3]);
+                xr = (uint)((data[offset + i + 4] << 24) | (data[offset + i + 5] << 16) | (data[offset + i + 6] << 8) | data[offset + i + 7]);
                 Decipher(ref xl, ref xr);
                 // Now Replace the data.
-                data[i] = (byte)(xl >> 24);
-                data[i + 1] = (byte)(xl >> 16);
-                data[i + 2] = (byte)(xl >> 8);
-                data[i + 3] = (byte)(xl);
-                data[i + 4] = (byte)(xr >> 24);
-                data[i + 5] = (byte)(xr >> 16);
-                data[i + 6] = (byte)(xr >> 8);
-                data[i + 7] = (byte)(xr);
+                data[offset + i] = (byte)(xl >> 24);
+                data[offset + i + 1] = (byte)(xl >> 16);
+                data[offset + i + 2] = (byte)(xl >> 8);
+                data[offset + i + 3] = (byte)(xl);
+                data[offset + i + 4] = (byte)(xr >> 24);
+                data[offset + i + 5] = (byte)(xr >> 16);
+                data[offset + i + 6] = (byte)(xr >> 8);
+                data[offset + i + 7] = (byte)(xr);
             }
         }
 

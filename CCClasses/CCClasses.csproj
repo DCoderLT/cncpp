@@ -64,6 +64,7 @@
     <Compile Include="FileFormats\Binary\PAL.cs" />
     <Compile Include="FileFormats\Binary\SHP.cs" />
     <Compile Include="FileFormats\Text\MAP.cs" />
+    <Compile Include="FileSystem.cs" />
     <Compile Include="Helpers\Extensions.cs" />
     <Compile Include="Libraries\Blowfish.cs" />
     <Compile Include="Libraries\Crc32.cs" />

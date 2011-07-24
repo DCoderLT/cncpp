@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CCClasses.Libraries;
+using System.Diagnostics;
 
 namespace CCClasses.FileFormats {
 
@@ -95,6 +96,7 @@ namespace CCClasses.FileFormats {
 
 
         static void init_bignum(ref UInt32[] n, UInt32 val, UInt32 len) {
+            ////Debug.WriteLine("Initializing bignum");
             for (UInt32 i = 1; i < len; ++i) {
                 n[i] = 0;
             }
@@ -102,6 +104,7 @@ namespace CCClasses.FileFormats {
         }
 
         static void move_key_to_big(ref UInt32[] n, ArraySegment<byte> keya, UInt32 klen, UInt32 blen) {
+            ////Debug.WriteLine("Moving key to bignum");
             byte sign = 0;
 
             var key = keya.Array;
@@ -117,10 +120,11 @@ namespace CCClasses.FileFormats {
             for (; i > 0; i--) {
                 SetByte(ref n, i - 1, key[ko + klen - i]);
             }
-            
+
         }
 
         static void key_to_bignum(ref UInt32[] n, byte[] key, UInt32 len) {
+            ////Debug.WriteLine("Transferring key to bignum");
             if (key[0] != 2) {
                 return;
             }
@@ -146,6 +150,7 @@ namespace CCClasses.FileFormats {
         }
 
         static UInt32 len_bignum(ref UInt32[] n, UInt32 len) {
+            ////Debug.WriteLine("Getting length of bignum");
             int i = (int)(len - 1);
 
             while ((i >= 0) && (n[i] == 0)) {
@@ -155,6 +160,7 @@ namespace CCClasses.FileFormats {
         }
 
         static UInt32 bitlen_bignum(ref UInt32[] n, UInt32 len) {
+            ////Debug.WriteLine("Getting bitlen of bignum");
             UInt32 ddlen = len_bignum(ref n, len);
 
             if (ddlen == 0) {
@@ -171,6 +177,7 @@ namespace CCClasses.FileFormats {
         }
 
         static long cmp_bignum(ref UInt32[] n1, ref UInt32[] n2, UInt32 len) {
+            ////Debug.WriteLine("Comparing bignums");
             while (len > 0) {
                 var v1 = n1[len - 1];
                 var v2 = n2[len - 1];
@@ -179,127 +186,132 @@ namespace CCClasses.FileFormats {
                 } else {
                     return v1 < v2 ? -1 : 1;
                 }
-	        }
-	        return 0;
+            }
+            return 0;
         }
 
         static void mov_bignum(ref UInt32[] dest, ref UInt32[] src, UInt32 len) {
+            ////Debug.WriteLine("Copying bignum");
             for (uint i = 0; i < len; ++i) {
                 dest[i] = src[i];
             }
         }
 
         static void shr_bignum(ref UInt32[] n, UInt32 bits, long len) {
+            ////Debug.WriteLine("SHR'ing bignum");
             UInt32 i, i2, ilen = (uint)len;
 
-	        i2 = bits / 32;
-	        if (i2 > 0) {
-		        for (i = 0; i < ilen - i2; i++) {
-			        n[i] = n[i + i2];
-		        }
-		        for (; i < ilen; i++) {
-			        n[i] = 0;
-		        }
-		        bits = bits % 32;
-	        }
+            i2 = bits / 32;
+            if (i2 > 0) {
+                for (i = 0; i < ilen - i2; i++) {
+                    n[i] = n[i + i2];
+                }
+                for (; i < ilen; i++) {
+                    n[i] = 0;
+                }
+                bits = bits % 32;
+            }
             if (bits == 0) {
                 return;
             }
 
             var bitsToShift = (int)bits;
-	        for (i = 0; i < ilen - 1; i++) {
+            for (i = 0; i < ilen - 1; i++) {
                 n[i] = (n[i] >> bitsToShift) | (n[i + 1] << (32 - bitsToShift));
-	        }
-	        n[i] = n[i] >> bitsToShift;
+            }
+            n[i] = n[i] >> bitsToShift;
         }
 
         static void shl_bignum(ref UInt32[] n, UInt32 bits, UInt32 len) {
+            ////Debug.WriteLine("SHL'ing bignum");
             UInt32 i, i2 = bits / 32;
-	        if (i2 > 0) {
-		        for (i = len - 1; i > i2; i--) {
-			        n[i] = n[i - i2];
-		        }
-		        for (; i > 0; i--) {
-			        n[i] = 0;
-		        }
-		        bits = bits % 32;
-	        }
-	        if (bits == 0) {
-		        return;
-	        }
+            if (i2 > 0) {
+                for (i = len - 1; i > i2; i--) {
+                    n[i] = n[i - i2];
+                }
+                for (; i > 0; i--) {
+                    n[i] = 0;
+                }
+                bits = bits % 32;
+            }
+            if (bits == 0) {
+                return;
+            }
 
             var bitsToShift = (int)bits;
             for (i = len - 1; i > 0; i--) {
-		        n[i] = (n[i] << bitsToShift) | (n[i - 1] >> (32 - bitsToShift));
-	        }
-	        n[0] <<= bitsToShift;
+                n[i] = (n[i] << bitsToShift) | (n[i - 1] >> (32 - bitsToShift));
+            }
+            n[0] <<= bitsToShift;
         }
 
         static UInt32 sub_bignum(ArraySegment<UInt32> desta, ArraySegment<UInt32> src1a, ref UInt32[] src2, UInt32 carry, UInt32 len) {
+            ////Debug.WriteLine("Subtracting bignum");
             UInt32 i1, i2;
 
-            if (len != 0) {
-                len += len;
-                uint ix = 0;
+            len += len;
+            uint ix = 0;
+            var d = desta.Array;
 
-                var d = desta.Array;
-
-                do {
-                    i1 = GetWord(src1a.Array, ix);
-                    i2 = GetWord(src2, ix);
-                    var delta = (UInt32)(i1 - i2 - carry);
-                    SetWord(ref d, ix, (UInt16)delta);
-                    ++ix;
-                    carry = ((delta & 0x10000) == 0) ? 0 : 1u;
-                } while (--len != 0);
+            while (--len != 0xFFFFFFFF) {
+                i1 = GetWord(src1a.Array, (uint)(ix + src1a.Offset));
+                i2 = GetWord(src2, ix);
+                var delta = (UInt32)(i1 - i2 - carry);
+                SetWord(ref d, (uint)(desta.Offset + ix), (UInt16)delta);
+                ////Debug.WriteLine("i1 = {0:X}, i2 = {1:X}, delta = {2:X}, carry = {3:X}", i1, i2, delta, carry);
+                carry = ((delta & 0x10000) == 0) ? 0 : 1u;
+                ++ix;
             }
 
-	        return carry;
+            return carry;
         }
 
         static void inv_bignum(ref UInt32[] n1, ref UInt32[] n2, UInt32 len) {
+            ////Debug.WriteLine("Inverting bignum");
             UInt32[] n_tmp = new UInt32[64];
-	        UInt32 n2_bytelen, bit;
-	        long n2_bitlen;
+            UInt32 n2_bytelen, bit;
+            long n2_bitlen;
 
             init_bignum(ref n_tmp, 0, len);
             init_bignum(ref n1, 0, len);
             n2_bitlen = bitlen_bignum(ref n2, len);
-	        bit = ((UInt32)1) << ((int)(n2_bitlen % 32));
+            bit = ((UInt32)1) << ((int)(n2_bitlen % 32));
 
             uint n1offs = (uint)((n2_bitlen + 32) / 32) - 1;
 
-	        n2_bytelen = (uint)((n2_bitlen - 1) / 32) * 4;
+            n2_bytelen = (uint)((n2_bitlen - 1) / 32) * 4;
 
-	        n_tmp[n2_bytelen / 4] |= ((UInt32) 1) << (byte)((n2_bitlen - 1) & 0x1f);
+            n_tmp[n2_bytelen / 4] |= ((UInt32)1) << (byte)((n2_bitlen - 1) & 0x1f);
 
-	        while (n2_bitlen > 0) {
-		        n2_bitlen--;
+            while (n2_bitlen > 0) {
+                n2_bitlen--;
                 shl_bignum(ref n_tmp, 1, len);
                 if (cmp_bignum(ref n_tmp, ref n2, len) != -1) {
                     var seg = new ArraySegment<UInt32>(n_tmp);
                     sub_bignum(seg, seg, ref n2, 0, len);
-			        n1[n1offs] |= bit;
-		        }
-		        bit >>= 1;
-		        if (bit == 0) {
-			        n1offs--;
-			        bit = 0x80000000;
-		        }
-	        }
+                    n1[n1offs] |= bit;
+                }
+                bit >>= 1;
+                if (bit == 0) {
+                    n1offs--;
+                    bit = 0x80000000;
+                }
+            }
             init_bignum(ref n_tmp, 0, len);
         }
 
         static void inc_bignum(ref UInt32[] n, UInt32 len) {
+            ////Debug.WriteLine("Incrementing bignum");
             uint noffs = 0;
-	        while ((++n[noffs] == 0) && (--len > 0)) {
-		        noffs++;
-	        }
+            while ((++n[noffs] == 0) && (--len > 0)) {
+                noffs++;
+            }
         }
 
 
 
         static void init_two_dw(ref UInt32[] n, UInt32 len) {
+            ////Debug.WriteLine("Initing glob1 with bignum");
             mov_bignum(ref glob1, ref n, len);
             glob1_bitlen = bitlen_bignum(ref glob1, len);
             glob1_len_x2 = (glob1_bitlen + 15) / 16;
@@ -325,38 +337,39 @@ namespace CCClasses.FileFormats {
         }
 
         static void mul_bignum_word(ArraySegment<UInt32> n1a, ref UInt32[] n2, UInt32 mul, UInt32 len) {
+            ////Debug.WriteLine("Multiplying bignum by word");
             UInt32 i, tmp = 0;
-            uint idx = 0;
 
             UInt32[] n1 = n1a.Array;
             uint n1of = (uint)n1a.Offset;
 
             for (i = 0; i < len; i++) {
-                tmp = mul * GetWord(n2, idx) + GetWord(n1, n1of + idx) + tmp;
-                SetWord(ref n1, n1of + idx, (UInt16)tmp);
-                ++idx;
+                tmp = mul * GetWord(n2, i) + GetWord(n1, n1of + i) + tmp;
+                SetWord(ref n1, n1of + i, (UInt16)tmp);
+                ////Debug.WriteLine("tmp = {0:X}, idx = {1:X}", tmp, i);
                 tmp >>= 16;
             }
-            SetWord(ref n1, n1of + idx, (UInt16)(GetWord(n1, n1of + idx) + tmp));
+            SetWord(ref n1, n1of + i, (UInt16)(GetWord(n1, n1of + i) + tmp));
         }
 
         static void mul_bignum(ref UInt32[] dest, ref UInt32[] src1, ref UInt32[] src2, UInt32 len) {
+            ////Debug.WriteLine("Multiplying bignums");
             init_bignum(ref dest, 0, len * 2);
-            uint idx = 0;
             for (UInt32 i = 0; i < len * 2; i++) {
-                var seg = new ArraySegment<UInt32>(dest, (int)idx, 0);
-                mul_bignum_word(seg, ref src1, GetWord(src2, idx), len * 2);
-                ++idx;
+                var seg = new ArraySegment<UInt32>(dest, (int)i, 0);
+                mul_bignum_word(seg, ref src1, GetWord(src2, i), len * 2);
             }
         }
 
         static void not_bignum(ref UInt32[] n, UInt32 len) {
+            ////Debug.WriteLine("NOT'ing bignum");
             for (UInt32 i = 0; i < len; i++) {
                 n[i] = ~n[i];
             }
         }
 
         static void neg_bignum(ref UInt32[] n, UInt32 len) {
+            ////Debug.WriteLine("Negating bignum");
             not_bignum(ref n, len);
             inc_bignum(ref n, len);
         }
@@ -389,6 +402,7 @@ namespace CCClasses.FileFormats {
         }
 
         static void dec_bignum(ref UInt32[] n, UInt32 len) {
+            ////Debug.WriteLine("Decrementing bignum");
             uint idx = 0;
             while ((--n[idx] == 0xffffffff) && (--len > 0)) {
                 idx++;
@@ -396,23 +410,24 @@ namespace CCClasses.FileFormats {
         }
 
         static void calc_a_bignum(ref UInt32[] n1, ref UInt32[] n2, ref UInt32[] n3, UInt32 len) {
+            ////Debug.WriteLine("Computing bignum");
             UInt32 g2_len_x2, len_diff;
-	        uint tmp;
+            UInt16 tmp;
 
             uint xesi, xedi;
 
             mul_bignum(ref glob2, ref n2, ref n3, len);
-	        glob2[len * 2] = 0;
+            glob2[len * 2] = 0;
             g2_len_x2 = len_bignum(ref glob2, len * 2 + 1) * 2;
-	        if (g2_len_x2 >= glob1_len_x2) {
+            if (g2_len_x2 >= glob1_len_x2) {
                 inc_bignum(ref glob2, len * 2 + 1);
                 neg_bignum(ref glob2, len * 2 + 1);
-		        len_diff = g2_len_x2 + 1 - glob1_len_x2;
+                len_diff = g2_len_x2 + 1 - glob1_len_x2;
 
                 xesi = 1 + g2_len_x2 - glob1_len_x2;
                 xedi = g2_len_x2 + 1;
-		        for (; len_diff != 0; len_diff--) {
-			        xedi--;
+                for (; len_diff != 0; len_diff--) {
+                    xedi--;
 
                     var words = new UInt16[3];
                     var ediw = xedi * 1;
@@ -420,22 +435,31 @@ namespace CCClasses.FileFormats {
                     words[1] = GetWord(glob2, ediw - 1);
                     words[2] = GetWord(glob2, ediw);
 
-                    tmp = get_mulword(ref words);
+                    ////Debug.WriteLine("XEDI = {0:X}, MULWORD({1:X}, {2:X}, {3:X})", xedi, words[0], words[1], words[2]);
+
+                    tmp = (UInt16)get_mulword(ref words);
+
+                    ////Debug.WriteLine("Got mulword {0:X}", tmp);
 
                     xesi--;
-			        if (tmp > 0) {
+                    if (tmp > 0) {
+                        ////Debug.WriteLine("tmp > 0");
                         var seg = new ArraySegment<UInt32>(glob2, (int)xesi, 0);
                         mul_bignum_word(seg, ref glob1, tmp, 2 * len);
-				        if ((GetWord(glob2, xedi) & 0x8000) == 0) {
+                        if ((GetWord(glob2, xedi) & 0x8000) == 0) {
+                            ////Debug.WriteLine("xedi & 0x8000 == 0");
+                            ////Debug.WriteLine("xesi = {0:X}", xesi);
+                            
                             if (sub_bignum(seg, seg, ref glob1, 0, len) != 0) {
-						        SetWord(ref glob2, xedi, (UInt16)(GetWord(glob2, xedi) - 1));
+                                ////Debug.WriteLine("sub != 0");
+                                SetWord(ref glob2, xedi, (UInt16)(GetWord(glob2, xedi) - 1));
                             }
-				        }
-			        }
-		        }
+                        }
+                    }
+                }
                 neg_bignum(ref glob2, len);
                 dec_bignum(ref glob2, len);
-	        }
+            }
             mov_bignum(ref n1, ref glob2, len);
         }
 
@@ -457,6 +481,7 @@ namespace CCClasses.FileFormats {
         }
 
         static void calc_a_key(ref UInt32[] n1, ref UInt32[] n2, ref UInt32[] n3, ref UInt32[] n4, UInt32 len) {
+            ////Debug.WriteLine("Calculating key from bignums");
             UInt32[] n_tmp = new UInt32[64];
             UInt32 n3_len, n4_len, n3_bitlen, bit_mask;
 
@@ -489,37 +514,37 @@ namespace CCClasses.FileFormats {
 
 
         static void init_pubkey() {
-	        UInt32 tmp;
-	        byte[] keytmp = new byte[256];
+            UInt32 tmp;
+            byte[] keytmp = new byte[256];
 
             init_bignum(ref pubkey.key2, 0x10001, 64);
 
-	        int i = 0;
-	        int i2 = 0;
-	        while (i < pubkey_str.Length) {
-		        tmp = (byte)char2num[pubkey_str[i++]];
-		        tmp <<= 6;
+            int i = 0;
+            int i2 = 0;
+            while (i < pubkey_str.Length) {
+                tmp = (byte)char2num[pubkey_str[i++]];
+                tmp <<= 6;
                 tmp |= (byte)char2num[pubkey_str[i++]];
-		        tmp <<= 6;
+                tmp <<= 6;
                 tmp |= (byte)char2num[pubkey_str[i++]];
-		        tmp <<= 6;
+                tmp <<= 6;
                 tmp |= (byte)char2num[pubkey_str[i++]];
-		        keytmp[i2++] = (byte)((tmp >> 16) & 0xff);
-		        keytmp[i2++] = (byte)((tmp >> 8) & 0xff);
-		        keytmp[i2++] = (byte)(tmp & 0xff);
-	        }
+                keytmp[i2++] = (byte)((tmp >> 16) & 0xff);
+                keytmp[i2++] = (byte)((tmp >> 8) & 0xff);
+                keytmp[i2++] = (byte)(tmp & 0xff);
+            }
             key_to_bignum(ref pubkey.key1, keytmp, 64);
             pubkey.len = bitlen_bignum(ref pubkey.key1, 64) - 1;
         }
 
-        static void process_predata (byte[] pre, UInt32 pre_len, ref byte [] buf) {
-	        UInt32[] n2 = new UInt32[64], n3 = new UInt32[64];
-	        UInt32 a = (pubkey.len - 1) / 8;
+        static void process_predata(byte[] pre, UInt32 pre_len, ref byte[] buf) {
+            UInt32[] n2 = new UInt32[64], n3 = new UInt32[64];
+            UInt32 a = (pubkey.len - 1) / 8;
 
             var preoff = 0u;
             var bufoff = 0u;
 
-	        while (a + 1 <= pre_len) {
+            while (a + 1 <= pre_len) {
                 init_bignum(ref n2, 0, 64);
 
                 for (var ia = 0u; ia < a + 1; ++ia) {
@@ -531,10 +556,10 @@ namespace CCClasses.FileFormats {
                     buf[ib + bufoff] = GetByte(n3, ib);
                 }
 
-		        pre_len -= a + 1;
-		        preoff += a + 1;
-		        bufoff += a;
-	        }
+                pre_len -= a + 1;
+                preoff += a + 1;
+                bufoff += a;
+            }
         }
 
         static UInt32 len_predata() {
@@ -545,14 +570,14 @@ namespace CCClasses.FileFormats {
 
         static bool public_key_initialized = false;
         public static void get_blowfish_key(byte[] s, ref byte[] d) {
-	        if (!public_key_initialized) {
-		        init_pubkey ();
-		        public_key_initialized = true;
-	        }
+            if (!public_key_initialized) {
+                init_pubkey();
+                public_key_initialized = true;
+            }
 
             byte[] key = new byte[256];
 
-	        process_predata (s, len_predata (), ref key);
+            process_predata(s, len_predata(), ref key);
             for (var i = 0; i < 56; ++i) {
                 d[i] = key[i];
             }

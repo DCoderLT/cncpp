@@ -6,7 +6,9 @@ using System.IO;
 
 namespace CCClasses {
     public class IFileFormat {
+        public String Filename;
         public virtual bool ReadFile(String filename) {
+            Filename = filename;
             return File.Exists(filename);
         }
     }
@@ -34,7 +36,7 @@ namespace CCClasses {
                 }
             }
         }
-}
+    }
 
     public class BinaryFileFormat : IFileFormat {
         public override bool ReadFile(String filename) {

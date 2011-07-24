@@ -7,6 +7,9 @@ using CCClasses.Libraries;
 
 namespace CCClasses.FileFormats.Binary {
     public class MIX : BinaryFileFormat {
+
+        public static List<MIX> LoadedMIXes = new List<MIX>();
+
         public enum MIXFlags {
             HasChecksum = 0x00010000,
             HasEncryption = 0x00020000
@@ -111,12 +114,14 @@ namespace CCClasses.FileFormats.Binary {
                 var decoded = new byte[hSize];
                 Buffer.BlockCopy(header, 0, decoded, 0, 8);
 
-                var encoded = new byte[8];
-                for (var i = 1; i < blockCount; ++i) {
-                    encoded = fileBytes.Skip(84 + 8 * i).Take(8).ToArray();
-                    bf.Decipher(encoded, 8);
-                    Buffer.BlockCopy(encoded, 0, decoded, i * 8, 8);
+                --blockCount;
+
+                var encoded = new byte[blockCount * 8];
+                Buffer.BlockCopy(fileBytes, 92, encoded, 0, blockCount * 8);
+                for (var i = 0; i < blockCount ; ++i) {
+                    bf.Decipher(encoded, 8, i * 8);
                 }
+                Buffer.BlockCopy(encoded, 0, decoded, 8, blockCount * 8);
 
                 HeadLength = (uint)(84 + 8 * blockCount);
                 headerBytes = decoded;
@@ -206,7 +211,7 @@ namespace CCClasses.FileFormats.Binary {
             return true;
         }
 
-        MemoryStream GetFileContents(UInt32 hash) {
+        public MemoryStream GetFileContents(UInt32 hash) {
             if (Entries.ContainsKey(hash)) {
                 var e = Entries[hash];
                 int pos = (int)(BodyStart + e.Offset);
@@ -214,6 +219,16 @@ namespace CCClasses.FileFormats.Binary {
                 return new MemoryStream(fileBytes, pos, len, false, false);
             }
             return null;
+        }
+
+        public MemoryStream GetFileContents(String filename) {
+            var hash = MIX_Magic.getID(filename);
+            return GetFileContents(hash);
+        }
+
+        public bool ContainsFile(String filename) {
+            var hash = MIX_Magic.getID(filename);
+            return Entries.ContainsKey(hash);
         }
     }
 }

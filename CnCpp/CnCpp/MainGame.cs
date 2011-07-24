@@ -14,6 +14,8 @@ using CCClasses.FileFormats;
 using CCClasses.FileFormats.Text;
 using CCClasses.FileFormats.Binary;
 using CCClasses.Helpers;
+using Microsoft.Win32;
+using System.Windows.Forms;
 
 namespace CnCpp {
     /// <summary>
@@ -67,6 +69,8 @@ namespace CnCpp {
         private float scale = 1f;
 
 
+        protected String GameDir = "";
+
 
         public MainGame() {
             graphics = new GraphicsDeviceManager(this);
@@ -103,6 +107,11 @@ namespace CnCpp {
             offX = defOX;
             offY = defOY;
             rotation = defRotation;
+
+            if (FindGameDir()) {
+                FileSystem.MainDir = GameDir;
+                LoadGameFiles();
+            }
         }
 
         private void InitializeDragDrop() {
@@ -175,7 +184,7 @@ namespace CnCpp {
                                 VoxelFrame = 0;
 
                                 var body = VoxLib.Create(file);
-                                if(body != null) {
+                                if (body != null) {
                                     var turname = file.Replace(Path.GetExtension(file), "tur.vxl");
                                     var turret = VoxLib.Create(turname);
 
@@ -203,7 +212,7 @@ namespace CnCpp {
                             case ".LUN":
                             case ".DES":
                                 if (MousePalette != null) {
-                                    
+
                                     Tile = new TMP(file);
 
                                     Console.WriteLine("Loaded TMP with {0} tiles", Tile.Tiles.Count);
@@ -315,68 +324,68 @@ namespace CnCpp {
                 this.Exit();
 
             var kState = Keyboard.GetState();
-            if (kState.IsKeyDown(Keys.Escape))
+            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
                 this.Exit();
 
-            if (kState.IsKeyDown(Keys.Space)) {
+            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Space)) {
                 offX = defOX;
                 offY = defOY;
                 rotation = defRotation;
                 scale = 1f;
             }
 
-            if (kState.IsKeyDown(Keys.Up)) {
+            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) {
                 offY -= (int)scale;
-            } else if (kState.IsKeyDown(Keys.Down)) {
+            } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) {
                 offY += (int)scale;
             }
 
-            if (kState.IsKeyDown(Keys.Left)) {
+            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Left)) {
                 offX -= (int)scale;
-            } else if (kState.IsKeyDown(Keys.Right)) {
+            } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Right)) {
                 offX += (int)scale;
             }
 
             var rot = MathHelper.PiOver4 / 4;
 
-            if (kState.IsKeyDown(Keys.Q)) {
+            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Q)) {
                 rotation.X += rot;
-            } else if (kState.IsKeyDown(Keys.A)) {
+            } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.A)) {
                 rotation.X -= rot;
             }
 
-            if (kState.IsKeyDown(Keys.W)) {
+            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.W)) {
                 rotation.Y += rot;
-            } else if (kState.IsKeyDown(Keys.S)) {
+            } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.S)) {
                 rotation.Y -= rot;
             }
 
-            if (kState.IsKeyDown(Keys.E)) {
+            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.E)) {
                 rotation.Z += rot;
-            } else if (kState.IsKeyDown(Keys.D)) {
+            } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.D)) {
                 rotation.Z -= rot;
             }
 
-            if (kState.IsKeyDown(Keys.Multiply)) {
+            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Multiply)) {
                 scale *= 1.01f;
-            } else if (kState.IsKeyDown(Keys.Divide)) {
+            } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Divide)) {
                 scale /= 1.01f;
             }
 
-            if (kState.IsKeyDown(Keys.L)) {
+            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.L)) {
                 effect.LightingEnabled = !effect.LightingEnabled;
             }
 
             if (LoadedVoxels.Count > 0) {
                 var fcount = (int)(LoadedVoxels[0].MotLib.Header.FrameCount - 1);
-                if (kState.IsKeyDown(Keys.Z)) {
+                if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Z)) {
                     if (VoxelFrame < fcount) {
                         ++VoxelFrame;
                     } else {
                         VoxelFrame = 0;
                     }
                     VoxelChanged = true;
-                } else if (kState.IsKeyDown(Keys.X)) {
+                } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.X)) {
                     if (VoxelFrame > 0) {
                         --VoxelFrame;
                     } else {
@@ -405,12 +414,12 @@ namespace CnCpp {
                         MouseFrameChanged = true;
                     }
 
-                    if (kState.IsKeyDown(Keys.Up) || (pos.ScrollWheelValue > MouseScroll)) {
+                    if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) || (pos.ScrollWheelValue > MouseScroll)) {
                         if ((MouseFrame + 1) < (int)MouseTextures.FrameCount) {
                             ++MouseFrame;
                             MouseFrameChanged = true;
                         }
-                    } else if (kState.IsKeyDown(Keys.Down) || (pos.ScrollWheelValue < MouseScroll)) {
+                    } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) || (pos.ScrollWheelValue < MouseScroll)) {
                         if (MouseFrame > -1) {
                             --MouseFrame;
                             MouseFrameChanged = true;
@@ -425,7 +434,7 @@ namespace CnCpp {
                         }
                     }
 
-                    if (CurrentMouseTexture != null && kState.IsKeyDown(Keys.S)) {
+                    if (CurrentMouseTexture != null && kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.S)) {
                         var outdir = Directory.GetCurrentDirectory();
                         var outfile = Path.Combine(outdir, "scr.png");
                         using (FileStream s = File.OpenWrite(outfile)) {
@@ -452,7 +461,7 @@ namespace CnCpp {
                         combinedVertices.AddRange(Vertices);
 
                         combinedIndices.AddRange(Indices.Select(ix => ix + indexShift));
-                      //  break;
+                        //  break;
                     }
 
                     VoxelContent = combinedVertices.ToArray();
@@ -538,7 +547,7 @@ namespace CnCpp {
                 viewMatrix = Matrix.CreateRotationX(rotation.X) * Matrix.CreateRotationY(rotation.Y) * Matrix.CreateRotationZ(rotation.Z) * Matrix.CreateTranslation(offX, offY, 0);
 
                 effect.View = viewMatrix;
-                
+
 
                 GraphicsDevice.SetVertexBuffer(vertexBuffer);
                 GraphicsDevice.Indices = indexBuffer;
@@ -551,6 +560,75 @@ namespace CnCpp {
             }
 
             base.Draw(gameTime);
+        }
+
+        private bool FindGameDir() {
+            var key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Wow6432Node\\Westwood\\Yuri's Revenge");
+            if (key == null) {
+                key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Westwood\\Yuri's Revenge");
+            }
+            String ipath = "";
+            if (key != null) {
+                using (key) {
+                    ipath = key.GetValue("InstallPath").ToString();
+                }
+            }
+            if (ipath.Length > 0) {
+                if (ipath.EndsWith("gamemd.exe")) {
+                    ipath = ipath.Replace("gamemd.exe", "");
+                }
+                ipath = ipath.TrimEnd('\\', '/');
+                if (Directory.Exists(ipath)) {
+                    GameDir = ipath + Path.DirectorySeparatorChar;
+                }
+            }
+
+            var gameExe = GameDir + "gamemd.exe";
+            if (!File.Exists(gameExe)) {
+                MessageBox.Show("Cannot locate installation of YR");
+                return false;
+            }
+
+            return true;
+        }
+
+        private void LoadGameFiles() {
+            FileSystem.LoadMIX("LANGMD.MIX");
+            FileSystem.LoadMIX("LANGUAGE.MIX");
+
+            for (var ix = 99; ix > 0; --ix) {
+                var pattern = String.Format("EXPANDMD{0:d2}.MIX", ix);
+                FileSystem.LoadMIX(pattern);
+            }
+
+            FileSystem.LoadMIX("RA2MD.MIX");
+            FileSystem.LoadMIX("RA2.MIX");
+            FileSystem.LoadMIX("CACHEMD.MIX");
+            FileSystem.LoadMIX("CACHE.MIX");
+            FileSystem.LoadMIX("LOCALMD.MIX");
+            FileSystem.LoadMIX("LOCAL.MIX");
+            FileSystem.LoadMIX("AUDIOMD.MIX");
+
+            foreach (var ecache in Directory.GetFiles(GameDir, "ECACHE*.MIX", SearchOption.TopDirectoryOnly)) {
+                FileSystem.LoadMIX(ecache);
+            }
+
+            foreach (var elocal in Directory.GetFiles(GameDir, "ELOCAL*.MIX", SearchOption.TopDirectoryOnly)) {
+                FileSystem.LoadMIX(elocal);
+            }
+
+            FileSystem.LoadMIX("CONQMD.MIX");
+            FileSystem.LoadMIX("GENERMD.MIX");
+            FileSystem.LoadMIX("GENERIC.MIX");
+            FileSystem.LoadMIX("ISOGENMD.MIX");
+            FileSystem.LoadMIX("ISOGEN.MIX");
+            FileSystem.LoadMIX("CONQUER.MIX");
+            FileSystem.LoadMIX("CAMEOMD.MIX");
+            FileSystem.LoadMIX("CAMEO.MIX");
+            FileSystem.LoadMIX("MAPSMD03.MIX");
+            FileSystem.LoadMIX("MULTIMD.MIX");
+            FileSystem.LoadMIX("THEMEMD.MIX");
+            FileSystem.LoadMIX("MOVMD03.MIX");
         }
     }
 }
