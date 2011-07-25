@@ -585,24 +585,25 @@ namespace CCClasses.FileFormats {
 
         public static UInt32 getID(String name) {
             name = name.ToUpper();
+
+            var nb = new List<byte>();
+            for (var i = 0; i < name.Length; ++i) {
+                nb.Add((byte)name[i]);
+            }
+
             var l = name.Length;
             int a = l >> 2;
             if ((l & 3) != 0) {
-                name += (l - (a << 2));
+                nb.Add((byte)(l - (a << 2)));
                 int i = 3 - (l & 3);
                 while (i-- != 0)
-                    name += name[a << 2];
+                    nb.Add(nb[a << 2]);
             }
 
             Crc32 crc = new Crc32();
 
-            byte[] nb = new byte[name.Length];
-            for (var i = 0; i < name.Length; ++i) {
-                nb[i] = (byte)name[i];
-            }
-
-            var hash = crc.ComputeHash(nb);
-            return BitConverter.ToUInt32(hash, 0);
+            var hash = crc.ComputeHash(nb.ToArray());
+            return BitConverter.ToUInt32(hash.Reverse().ToArray(), 0);
         }
 
         public static String getIDString(String name) {

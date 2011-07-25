@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using CCClasses.Libraries;
+using System.Diagnostics;
 
 namespace CCClasses.FileFormats.Binary {
     public class MIX : BinaryFileFormat {
@@ -55,13 +56,13 @@ namespace CCClasses.FileFormats.Binary {
 
         public uint BodyStart {
             get {
-                return HeadLength + (Flags.HasFlag(MIXFlags.HasChecksum) ? 0x20u : 0);
+                return HeadLength;// +(Flags.HasFlag(MIXFlags.HasChecksum) ? 20u : 0);
             }
         }
 
         public uint BodyLength {
             get {
-                return FileLength - HeadLength;
+                return FileLength - BodyStart;
             }
         }
 
@@ -106,6 +107,7 @@ namespace CCClasses.FileFormats.Binary {
                 var hSize = Header.FileCount * 12 + 6;
                 hSize += (hSize % 8);
                 var blockCount = hSize >> 3;
+                HeadLength = (uint)(84 + hSize);
 
                 if (length < (84 + hSize)) {
                     return false;
@@ -123,7 +125,6 @@ namespace CCClasses.FileFormats.Binary {
                 }
                 Buffer.BlockCopy(encoded, 0, decoded, 8, blockCount * 8);
 
-                HeadLength = (uint)(84 + 8 * blockCount);
                 headerBytes = decoded;
             } else {
                 var s = new ArraySegment<byte>(fileBytes, 4, 6);
@@ -137,8 +138,8 @@ namespace CCClasses.FileFormats.Binary {
                 }
 
                 HeadLength = (uint)(10 + headLen);
-                headerBytes = new byte[HeadLength];
-                Buffer.BlockCopy(fileBytes, 4, headerBytes, 0, (int)HeadLength);
+                headerBytes = new byte[HeadLength - 4];
+                Buffer.BlockCopy(fileBytes, 4, headerBytes, 0, (int)HeadLength - 4);
             }
 
             if (!ReadEntryHeaders()) {
@@ -208,6 +209,7 @@ namespace CCClasses.FileFormats.Binary {
 
                 Entries.Add(Entry.Hash, Entry);
             }
+
             return true;
         }
 
@@ -216,6 +218,7 @@ namespace CCClasses.FileFormats.Binary {
                 var e = Entries[hash];
                 int pos = (int)(BodyStart + e.Offset);
                 int len = (int)e.Length;
+
                 return new MemoryStream(fileBytes, pos, len, false, false);
             }
             return null;
