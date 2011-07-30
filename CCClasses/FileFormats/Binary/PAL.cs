@@ -36,23 +36,23 @@ namespace CCClasses.FileFormats.Binary {
 
         public Color[] Colors = new Color[256];
 
-        public static PAL Load(String filename) {
-            if (!LoadedPalettes.ContainsKey(filename)) {
-                var Palette = new PAL(filename);
-                LoadedPalettes[filename] = Palette;
-            }
-            return LoadedPalettes[filename];
-        }
+        //public static PAL Load(String filename) {
+        //    if (!LoadedPalettes.ContainsKey(filename)) {
+        //        var Palette = new PAL(filename);
+        //        LoadedPalettes[filename] = Palette;
+        //    }
+        //    return LoadedPalettes[filename];
+        //}
 
-        public PAL(String filename = null) : base(filename) {
+        public PAL(CCFileClass ccFile = null) : base(ccFile) {
         }
 
         private byte decompress_6_to_8(int v18) {
             return (byte)((v18 & 63) * 255 / 63);
         }
 
-        public override bool ReadFile(BinaryReader r, long length) {
-            if (length != 768) {
+        protected override bool ReadFile(BinaryReader r) {
+            if (r.BaseStream.Length != 768) {
                 return false;
             }
             for (var i = 0; i < 256; ++i) {

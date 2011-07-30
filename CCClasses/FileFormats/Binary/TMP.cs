@@ -2,11 +2,16 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework;
+using System.Diagnostics;
 
 namespace CCClasses.FileFormats.Binary {
     public class TMP : BinaryFileFormat {
+        public static int TileWidth = 60;
+        public static int TileHeight = 30;
+
         public class FileHeader {
             internal const int ByteSize = 16;
 
@@ -21,12 +26,14 @@ namespace CCClasses.FileFormats.Binary {
                 }
             }
 
-            internal void ReadFile(ArraySegment<byte> data) {
+            internal bool ReadFile(ArraySegment<byte> data) {
                 var offs = data.Offset;
                 XBlocks = BitConverter.ToUInt32(data.Array, offs);
                 YBlocks = BitConverter.ToUInt32(data.Array, offs + 4);
                 BlockWidth = BitConverter.ToUInt32(data.Array, offs + 8);
                 BlockHeight = BitConverter.ToUInt32(data.Array, offs + 12);
+
+                return BlockHeight == TileHeight && BlockWidth == TileWidth;
             }
         };
 
@@ -59,8 +66,6 @@ namespace CCClasses.FileFormats.Binary {
 
             internal int Position;
 
-            public int BlockWidth, BlockHeight;
-
             public int ExtrasArea {
                 get {
                     return ExtraWidth * ExtraHeight;
@@ -88,7 +93,7 @@ namespace CCClasses.FileFormats.Binary {
                 RadarLeftColor = new Color(data.Array[offs + 43], data.Array[offs + 44], data.Array[offs + 45]);
                 RadarRightColor = new Color(data.Array[offs + 46], data.Array[offs + 47], data.Array[offs + 48]);
 
-                var GraphicsLength = BlockHeight * BlockWidth / 2;
+                var GraphicsLength = TileHeight * TileWidth / 2;
 
                 Graphics = new byte[GraphicsLength];
                 Buffer.BlockCopy(data.Array, offs + 52, Graphics, 0, GraphicsLength);
@@ -120,18 +125,90 @@ namespace CCClasses.FileFormats.Binary {
 
                     Extras = new byte[extraArea];
                     Buffer.BlockCopy(data.Array, offs + ExtraOffset, Extras, 0, extraArea);
+
+                    if (HasZData) {
+                        ExtraZData = new byte[extraArea];
+                        Buffer.BlockCopy(data.Array, offs + ExtraZOffset, ExtraZData, 0, extraArea);
+                    }
                 }
             }
 
-            public void GetTexture(ref Color[] data, PAL Palette, Rectangle TextureBounds, int MaxHeight) {
-//                var data = new Color[Width * Height];
+            /// <summary>
+            /// Draws this subtile at a given position in the texture - no extra data
+            /// </summary>
+            /// <param name="data"></param>
+            /// <param name="Palette"></param>
+            /// <param name="TextureBounds"></param>
+            /// <param name="TopLeft"></param>
+            public void GetBaseTextureStandalone(Helpers.ZBufferedTexture tex, PAL Palette, CellStruct TopLeft, int CellLevel) {
+                var beginX = TopLeft.X;
+                var beginY = TopLeft.Y;
+
+                for (var y = 0; y < TileHeight; ++y) {
+                    for (var x = 0; x < TileWidth; ++x) {
+                        var ixPix = IndexOfPixel(x, y);
+                        if (ixPix != -1) {
+                            var ixClr = Graphics[ixPix];
+                            if (ixClr != 0) {
+                                var clr = Palette.Colors[ixClr];
+
+                                var z = CellLevel * 30;
+                                if (HasZData) {
+                                    z += ZData[ixPix];
+                                }
+
+                                tex.PutPixel(clr, beginX + x, beginY + y, z);
+                            }
+                        }
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Draws the extra data of this subtile at a given position in the texture
+            /// </summary>
+            /// <param name="data"></param>
+            /// <param name="Palette"></param>
+            /// <param name="TextureBounds"></param>
+            /// <param name="TopLeft"></param>
+            public void GetExtrasTextureStandalone(Helpers.ZBufferedTexture tex, PAL Palette, CellStruct TopLeft, int CellLevel) {
+                var beginX = TopLeft.X + (ExtraX - X);
+                var beginY = TopLeft.Y + (ExtraY - Y);
+
+                for (var y = 0; y < ExtraHeight; ++y) {
+                    for (var x = 0; x < ExtraWidth; ++x) {
+                            var ixPix = y * ExtraWidth + x;
+                            var ixClr = Extras[ixPix];
+                            if (ixClr != 0) {
+                                var clr = Palette.Colors[ixClr];
+
+                                var z = CellLevel * 30;
+                                if (HasZData) {
+                                    z += ExtraZData[ixPix];
+                                }
+
+                                tex.PutPixel(clr, beginX + x, beginY + y, z);
+                            }
+                    }
+                }
+            }
+
+
+            /// <summary>
+            /// Draws this subtile into a texture that was specifically allocated for this tile only - not very useful overall, just for testing single combined tile drawing
+            /// </summary>
+            /// <param name="data"></param>
+            /// <param name="Palette"></param>
+            /// <param name="TextureBounds"></param>
+            /// <param name="MaxHeight"></param>
+            public void GetCombinedTextureInTile(ref Color[] data, PAL Palette, Rectangle TextureBounds, int MaxHeight) {
+                //                var data = new Color[Width * Height];
 
                 var H = MaxHeight - Height;
-                var ixC = ((Y - TextureBounds.Y + (H * BlockHeight / 2)) * TextureBounds.Width) + (X - TextureBounds.X);
-                for (var y = 0; y < BlockHeight; ++y) {
-                    for (var x = 0; x < BlockWidth; ++x) {
+                var ixC = ((Y - TextureBounds.Y + (H * TileHeight / 2)) * TextureBounds.Width) + (X - TextureBounds.X);
+                for (var y = 0; y < TileHeight; ++y) {
+                    for (var x = 0; x < TileWidth; ++x) {
                         var ixPix = IndexOfPixel(x, y);
-                     //   Console.WriteLine("{0};{1} => {2}", x, y, ixPix);
                         if (ixPix != -1) {
                             var ix = Graphics[ixPix];
                             if (ix == 0) {
@@ -145,7 +222,7 @@ namespace CCClasses.FileFormats.Binary {
                 }
 
                 if (HasExtraData) {
-                    ixC = ((ExtraY - TextureBounds.Y + (H * BlockHeight / 2)) * TextureBounds.Width) + (ExtraX - TextureBounds.X);
+                    ixC = ((ExtraY - TextureBounds.Y + (H * TileHeight / 2)) * TextureBounds.Width) + (ExtraX - TextureBounds.X);
                     var ixPix = 0;
                     for (var y = 0; y < ExtraHeight; ++y) {
                         for (var x = 0; x < ExtraWidth; ++x) {
@@ -161,28 +238,28 @@ namespace CCClasses.FileFormats.Binary {
             }
 
             private int PixelsInRow(int y) {
-                if (y > (BlockHeight - 2)) {
+                if (y > (TileHeight - 2)) {
                     return 0;
                 }
-                if (y > ((BlockHeight >> 1) - 1)) {
-                    y = BlockHeight - 2 - y;
+                if (y > ((TileHeight >> 1) - 1)) {
+                    y = TileHeight - 2 - y;
                 }
                 return 4 * (y + 1);
             }
 
             private int FirstPixelInRow(int y) {
-                if (y > (BlockHeight - 2)) {
+                if (y > (TileHeight - 2)) {
                     return -1;
                 }
-                if (y > ((BlockHeight >> 1) - 1)) {
-                    y = BlockHeight - 2 - y;
+                if (y > ((TileHeight >> 1) - 1)) {
+                    y = TileHeight - 2 - y;
                 }
 
-                return BlockHeight - 2 * (y + 1);
+                return TileHeight - 2 * (y + 1);
             }
 
             private int IndexOfPixel(int x, int y) {
-                if (y > BlockHeight - 2) {
+                if (y > TileHeight - 2) {
                     return -1;
                 }
                 var amountInPrevRows = 0;
@@ -191,7 +268,7 @@ namespace CCClasses.FileFormats.Binary {
                 }
                 var firstInRow = FirstPixelInRow(y);
                 if (firstInRow <= x) {
-                    if (BlockWidth - firstInRow > x) {
+                    if (TileWidth - firstInRow > x) {
                         return amountInPrevRows + (x - firstInRow);
                     }
                 }
@@ -203,10 +280,12 @@ namespace CCClasses.FileFormats.Binary {
         public FileHeader Header = new FileHeader();
         public List<TileHeader> Tiles = new List<TileHeader>();
 
-        public TMP(String filename = null) : base(filename) {
+        public TMP(CCFileClass ccFile = null)
+            : base(ccFile) {
         }
 
-        public override bool ReadFile(System.IO.BinaryReader r, long length) {
+        protected override bool ReadFile(BinaryReader r) {
+            var length = (int)r.BaseStream.Length;
             if (length < FileHeader.ByteSize) {
                 return false;
             }
@@ -214,7 +293,9 @@ namespace CCClasses.FileFormats.Binary {
             byte[] h = r.ReadBytes(FileHeader.ByteSize);
 
             var seg = new ArraySegment<byte>(h);
-            Header.ReadFile(seg);
+            if (!Header.ReadFile(seg)) {
+                return false;
+            }
 
             var offset = FileHeader.ByteSize;
 
@@ -234,19 +315,18 @@ namespace CCClasses.FileFormats.Binary {
                     return false;
                 }
                 if (pos == 0) {
+                    Tiles.Add(null);
                     continue;
                 }
 
                 var T = new TileHeader();
-                T.BlockWidth = (int) Header.BlockWidth;
-                T.BlockHeight = (int) Header.BlockHeight;
                 T.Position = pos;
                 Tiles.Add(T);
             }
 
             byte[] contents = r.ReadBytes((int)(length - offset));
 
-            foreach(var T in Tiles) {
+            foreach (var T in TilesReal) {
                 seg = new ArraySegment<byte>(contents, T.Position - offset, 0);
                 T.ReadFile(seg);
             }
@@ -254,9 +334,21 @@ namespace CCClasses.FileFormats.Binary {
             return true;
         }
 
+        internal IEnumerable<TileHeader> TilesReal {
+            get {
+                int idx = -1;
+                while (idx < Tiles.Count - 1) {
+                    ++idx;
+                    if (Tiles[idx] != null) {
+                        yield return Tiles[idx];
+                    }
+                }
+            }
+        }
+
         internal int MaxHeight {
             get {
-                return Tiles.Max(T => T.Height);
+                return TilesReal.Max(T => T.Height);
             }
         }
 
@@ -269,13 +361,13 @@ namespace CCClasses.FileFormats.Binary {
             var bigY = Int32.MinValue;
             long bigYval = 0;
 
-            foreach (var T in Tiles) {
+            foreach (var T in TilesReal) {
                 var H = MaxHeight - T.Height;
                 var HeightComponent = (int)(H * Header.BlockHeight / 2);
                 var x1 = T.X;
-                var x2 = x1 + T.BlockWidth;
+                var x2 = x1 + TMP.TileWidth;
                 var y1 = T.Y + HeightComponent;
-                var y2 = y1 + T.BlockHeight;
+                var y2 = y1 + TMP.TileHeight;
 
                 if (T.HasExtraData) {
                     var yE1 = T.ExtraY + HeightComponent;
@@ -324,7 +416,7 @@ namespace CCClasses.FileFormats.Binary {
 
         public Texture2D GetTexture(GraphicsDevice gd, PAL Palette) {
             var bounds = GetBounds();
-            
+
             var t = new Texture2D(gd, bounds.Width, bounds.Height, false, SurfaceFormat.Color);
 
             var data = new Color[bounds.Width * bounds.Height];
@@ -333,8 +425,8 @@ namespace CCClasses.FileFormats.Binary {
                 data[i] = PAL.TranslucentColor;
             }
 
-            foreach (var T in Tiles) {
-                T.GetTexture(ref data, Palette, bounds, MaxHeight);
+            foreach (var T in TilesReal) {
+                T.GetCombinedTextureInTile(ref data, Palette, bounds, MaxHeight);
             }
 
             t.SetData(data);

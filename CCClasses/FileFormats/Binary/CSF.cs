@@ -170,15 +170,15 @@ namespace CCClasses.FileFormats.Binary {
             }
         };
 
-        public CSF(String filename)
-            : base(filename) {
+        public CSF(CCFileClass ccFile = null) : base(ccFile) {
         }
 
         public FileHeader Header = new FileHeader();
 
         public Dictionary<String, Label> Labels = new Dictionary<string, Label>();
 
-        public override bool ReadFile(BinaryReader r, long length) {
+        protected override bool ReadFile(BinaryReader r) {
+            var length = r.BaseStream.Length;
             if (length < FileHeader.ByteSize) {
                 return false;
             }

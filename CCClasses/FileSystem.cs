@@ -9,42 +9,47 @@ namespace CCClasses {
     public class FileSystem {
         public static String MainDir = "";
 
-        public static Stream LoadFile(String filename) {
+        private static Dictionary<String, CCFileClass> LoadedFiles = new Dictionary<string, CCFileClass>();
+
+        public static CCFileClass LoadFile(String filename) {
+            if (LoadedFiles.ContainsKey(filename)) {
+                return LoadedFiles[filename];
+            }
+            if (filename.IndexOf(Path.DirectorySeparatorChar) != -1) {
+                if (File.Exists(filename)) {
+                    var ccf = new CCFileClass(filename, File.OpenRead(filename));
+                    LoadedFiles.Add(filename, ccf);
+                    return ccf;
+                }
+                return null;
+            }
+
             foreach (var M in MIX.LoadedMIXes) {
                 if (M.ContainsFile(filename)) {
-                    return M.GetFileContents(filename);
+                    var ccf = new CCFileClass(filename, M.GetFileContents(filename));
+                    LoadedFiles.Add(filename, ccf);
+                    return ccf;
                 }
             }
 
             var loose = MainDir + filename;
             if (File.Exists(loose)) {
-                return new FileStream(loose, FileMode.Open);
+                var ccf = new CCFileClass(filename, File.OpenRead(loose));
+                LoadedFiles.Add(filename, ccf);
+                return ccf;
             }
 
             return null;
         }
 
-        public static bool LoadMIX(String filename) {
-            foreach (var M in MIX.LoadedMIXes) {
-                if (M.ContainsFile(filename)) {
-                    var X = new MIX();
-                    using (var r = new BinaryReader(M.GetFileContents(filename))) {
-                        X.ReadFile(r, r.BaseStream.Length);
-                    }
-                    MIX.LoadedMIXes.Insert(0, X);
-                    return true;
-                }
+        public static MIX LoadMIX(String filename) {
+            var ccF = LoadFile(filename);
+            if (ccF != null) {
+                var MX = new MIX(ccF);
+                MIX.LoadedMIXes.Insert(0, MX);
+                return MX;
             }
-
-            var loose = MainDir + filename;
-            if (!File.Exists(loose)) {
-                return false;
-            }
-
-            var MX = new MIX(loose);
-            MIX.LoadedMIXes.Insert(0, MX);
-
-            return true;
+            return null;
         }
     }
 }

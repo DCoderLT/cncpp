@@ -95,7 +95,7 @@ namespace CCClasses.FileFormats.Binary {
         public List<FrameHeader> FrameHeaders = new List<FrameHeader>();
         public PAL Palette;
 
-        public SHP(String filename = null) : base(filename) {
+        public SHP(CCFileClass ccFile = null) : base(ccFile) {
         }
 
         public uint FrameCount {
@@ -104,7 +104,8 @@ namespace CCClasses.FileFormats.Binary {
             }
         }
 
-        public override bool ReadFile(BinaryReader r, long length) {
+        protected override bool ReadFile(BinaryReader r) {
+            var length = (int)r.BaseStream.Length;
             if (length < 8) {
                 throw new InvalidDataException("File is too short to contain even a header", null);
             }

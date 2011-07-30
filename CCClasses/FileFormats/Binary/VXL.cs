@@ -912,7 +912,7 @@ namespace CCClasses.FileFormats.Binary {
 
         private HVA MotLib;
 
-        public VXL(String filename = null) : base(filename) {
+        public VXL(CCFileClass ccFile = null) : base(ccFile) {
         }
 
         public void SetHVA(HVA Mot) {
@@ -922,7 +922,8 @@ namespace CCClasses.FileFormats.Binary {
             }
         }
         
-        public override bool ReadFile(BinaryReader r, long length) {
+        protected override bool ReadFile(BinaryReader r) {
+            var length = (int)r.BaseStream.Length;
             if (length < FileHeader.Size) {
                 return false;
             }
@@ -1008,8 +1009,8 @@ namespace CCClasses.FileFormats.Binary {
         public int Frame;
 
         public VoxLib(String VXLName, String HVAName) {
-            MotLib = new HVA(HVAName);
-            Voxel = new VXL(VXLName);
+            MotLib = new HVA(FileSystem.LoadFile(HVAName));
+            Voxel = new VXL(FileSystem.LoadFile(VXLName));
             Frame = 0;
 
             Voxel.SetHVA(MotLib);

@@ -102,13 +102,14 @@ namespace CCClasses.FileFormats.Binary {
             }
         }
 
-        public HVA(String filename = null) : base(filename) {
+        public HVA(CCFileClass ccFile = null) : base(ccFile) {
         }
 
         public FileHeader Header = new FileHeader();
         public List<Section> Sections = new List<Section>();
 
-        public override bool ReadFile(BinaryReader r, long length) {
+        protected override bool ReadFile(BinaryReader r) {
+            var length = (int)r.BaseStream.Length;
             if (length < 24) {
                 return false;
             }

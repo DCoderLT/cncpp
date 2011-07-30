@@ -66,13 +66,23 @@ namespace CCClasses.FileFormats.Binary {
             }
         }
 
-        public MIX(String filename = null) : base(filename) {
+        public MIX(CCFileClass ccFile = null)
+            : base(ccFile) {
         }
-        
-        public override bool ReadFile(BinaryReader r, long length) {
+
+        public void Release() {
+            var idx = LoadedMIXes.FindIndex(M => M == this);
+            if (idx != -1) {
+                LoadedMIXes.RemoveAt(idx);
+            }
+        }
+
+        protected override bool ReadFile(BinaryReader r) {
+            var length = (int)r.BaseStream.Length;
             this.FileLength = (uint)length;
 
             if (length < 10) {
+                ParseError("File length too short to contain file header.");
                 return false;
             }
 
@@ -80,69 +90,88 @@ namespace CCClasses.FileFormats.Binary {
 
             UInt32 flags = BitConverter.ToUInt32(fileBytes, 0);
             if ((flags & 0x0000FFFF) != 0) {
-                return false;
-            }
-            if ((flags & (uint)MIXFlags.HasChecksum) != 0) {
-                Flags |= MIXFlags.HasChecksum;
-            }
-            if ((flags & (uint)MIXFlags.HasEncryption) != 0) {
-                Flags |= MIXFlags.HasEncryption;
-            }
-
-            if (Flags.HasFlag(MIXFlags.HasEncryption)) {
-                // uh oh
-
-                var key80 = fileBytes.Skip(4).Take(80).ToArray();
-                var key56 = new byte[56];
-                MIX_Magic.get_blowfish_key(key80, ref key56);
-
-                var bf = new Blowfish(key56);
-                var header = fileBytes.Skip(84).Take(8).ToArray();
-                bf.Decipher(header, 8);
-                var s = new ArraySegment<byte>(header, 0, 6);
+                var s = new ArraySegment<byte>(fileBytes, 0, 6);
                 if (!Header.ReadFile(s)) {
-                    return false;
-                }
-
-                var hSize = Header.FileCount * 12 + 6;
-                hSize += (hSize % 8);
-                var blockCount = hSize >> 3;
-                HeadLength = (uint)(84 + hSize);
-
-                if (length < (84 + hSize)) {
-                    return false;
-                }
-
-                var decoded = new byte[hSize];
-                Buffer.BlockCopy(header, 0, decoded, 0, 8);
-
-                --blockCount;
-
-                var encoded = new byte[blockCount * 8];
-                Buffer.BlockCopy(fileBytes, 92, encoded, 0, blockCount * 8);
-                for (var i = 0; i < blockCount ; ++i) {
-                    bf.Decipher(encoded, 8, i * 8);
-                }
-                Buffer.BlockCopy(encoded, 0, decoded, 8, blockCount * 8);
-
-                headerBytes = decoded;
-            } else {
-                var s = new ArraySegment<byte>(fileBytes, 4, 6);
-                if (!Header.ReadFile(s)) {
+                    ParseError("Failed to read file header (old style).");
                     return false;
                 }
 
                 var headLen = Header.FileCount * 12;
-                if (length < (10 + headLen)) {
+                if (length < (6 + headLen)) {
+                    ParseError("File length too short to contain entry headers.");
                     return false;
                 }
 
-                HeadLength = (uint)(10 + headLen);
-                headerBytes = new byte[HeadLength - 4];
-                Buffer.BlockCopy(fileBytes, 4, headerBytes, 0, (int)HeadLength - 4);
-            }
+                HeadLength = (uint)(6 + headLen);
+                headerBytes = new byte[HeadLength];
+                Buffer.BlockCopy(fileBytes, 0, headerBytes, 0, (int)HeadLength);
+            } else {
+                if ((flags & (uint)MIXFlags.HasChecksum) != 0) {
+                    Flags |= MIXFlags.HasChecksum;
+                }
+                if ((flags & (uint)MIXFlags.HasEncryption) != 0) {
+                    Flags |= MIXFlags.HasEncryption;
+                }
 
+                if (Flags.HasFlag(MIXFlags.HasEncryption)) {
+                    // uh oh
+
+                    var key80 = fileBytes.Skip(4).Take(80).ToArray();
+                    var key56 = new byte[56];
+                    MIX_Magic.get_blowfish_key(key80, ref key56);
+
+                    var bf = new Blowfish(key56);
+                    var header = fileBytes.Skip(84).Take(8).ToArray();
+                    bf.Decipher(header, 8);
+                    var s = new ArraySegment<byte>(header, 0, 6);
+                    if (!Header.ReadFile(s)) {
+                        ParseError("Failed to read file header (encrypted style, yo).");
+                        return false;
+                    }
+
+                    var hSize = Header.FileCount * 12 + 6;
+                    hSize += 8 - (hSize % 8);
+                    var blockCount = hSize >> 3;
+                    HeadLength = (uint)(84 + hSize);
+
+                    if (length < (84 + hSize)) {
+                        ParseError("File length too short to contain entry headers.");
+                        return false;
+                    }
+
+                    var decoded = new byte[hSize];
+                    Buffer.BlockCopy(header, 0, decoded, 0, 8);
+
+                    --blockCount;
+
+                    var encoded = new byte[blockCount * 8];
+                    Buffer.BlockCopy(fileBytes, 92, encoded, 0, blockCount * 8);
+                    for (var i = 0; i < blockCount; ++i) {
+                        bf.Decipher(encoded, 8, i * 8);
+                    }
+                    Buffer.BlockCopy(encoded, 0, decoded, 8, blockCount * 8);
+
+                    headerBytes = decoded;
+                } else {
+                    var s = new ArraySegment<byte>(fileBytes, 4, 6);
+                    if (!Header.ReadFile(s)) {
+                        ParseError("Failed to read file header (new style).");
+                        return false;
+                    }
+
+                    var headLen = Header.FileCount * 12;
+                    if (length < (10 + headLen)) {
+                        ParseError("File length too short to contain entry headers.");
+                        return false;
+                    }
+
+                    HeadLength = (uint)(10 + headLen);
+                    headerBytes = new byte[HeadLength - 4];
+                    Buffer.BlockCopy(fileBytes, 4, headerBytes, 0, (int)HeadLength - 4);
+                }
+            }
             if (!ReadEntryHeaders()) {
+                ParseError("Failed to read entry headers.");
                 return false;
             }
 
@@ -192,7 +221,7 @@ namespace CCClasses.FileFormats.Binary {
                 }
 
 
-            }            
+            }
         }
 
         bool ReadEntryHeaders() {
@@ -232,6 +261,12 @@ namespace CCClasses.FileFormats.Binary {
         public bool ContainsFile(String filename) {
             var hash = MIX_Magic.getID(filename);
             return Entries.ContainsKey(hash);
+        }
+
+        public IEnumerable<string> EntriesText {
+            get {
+                return Entries.Select(E => String.Format("ID: {0:X8} Offset: {1:X8}  Size: {2:X8}", E.Value.Hash, E.Value.Offset, E.Value.Length));
+            }
         }
     }
 }

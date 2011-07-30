@@ -16,6 +16,7 @@ using CCClasses.FileFormats.Binary;
 using CCClasses.Helpers;
 using Microsoft.Win32;
 using System.Windows.Forms;
+using System.Diagnostics;
 
 namespace CnCpp {
     /// <summary>
@@ -31,8 +32,10 @@ namespace CnCpp {
         private SHP MouseTextures;
         private PAL MousePalette;
 
-        private TMP Tile;
-        private Texture2D TileTexture;
+        private MapClass Map;
+        private bool MapTextureChangePending;
+        private Texture2D MapTexture;
+        private TimeSpan TimeSinceMapUpdate; 
 
         private INI INIFile;
 
@@ -110,7 +113,29 @@ namespace CnCpp {
 
             if (FindGameDir()) {
                 FileSystem.MainDir = GameDir;
+
+                //                RunTests();
+
                 LoadGameFiles();
+
+                InitTacticalView();
+            }
+        }
+
+        private void RunTests() {
+            var LangMD = FileSystem.LoadMIX("LANGMD.MIX");
+            if (LangMD != null) {
+                Debug.WriteLine(String.Join("\n", LangMD.EntriesText));
+                MIX Audio = FileSystem.LoadMIX("AUDIOMD.MIX");
+                if (Audio != null) {
+                    Debug.WriteLine("Success");
+
+                    Debug.WriteLine(String.Join("\n", Audio.EntriesText));
+                } else {
+                    Debug.WriteLine("No Audio");
+                }
+            } else {
+                Debug.WriteLine("No Lang");
             }
         }
 
@@ -144,149 +169,120 @@ namespace CnCpp {
                         var ext = Path.GetExtension(file).ToUpper();
 
                         switch (ext) {
-                            case ".PAL":
-                                MousePalette = new PAL(file);
+                            //case ".PAL":
+                            //    MousePalette = new PAL(file);
 
-                                break;
+                            //    break;
 
-                            case ".SHP":
-                            case ".SHA":
-                                MouseFrame = -1;
+                            //case ".SHP":
+                            //case ".SHA":
+                            //    MouseFrame = -1;
 
-                                MouseTextures = new SHP(file);
-                                if (MousePalette == null) {
-                                    MousePalette = PAL.GrayscalePalette;
-                                }
-                                MouseTextures.ApplyPalette(MousePalette);
-                                break;
+                            //    MouseTextures = new SHP(file);
+                            //    if (MousePalette == null) {
+                            //        MousePalette = PAL.GrayscalePalette;
+                            //    }
+                            //    MouseTextures.ApplyPalette(MousePalette);
+                            //    break;
 
-                            case ".INI":
-                                INIFile = new INI(file);
+                            //case ".INI":
+                            //    INIFile = new INI(file);
 
-                                break;
+                            //    break;
 
-                            case ".MIX":
-                                var M = new MIX(file);
+                            //case ".HVA":
+                            //    var H = new HVA(file);
 
-                                Console.WriteLine("Loaded MIX with {0} entries", M.Entries.Count);
-                                break;
+                            //    Console.WriteLine("Loaded HVA with {0} sections", H.Sections.Count);
+                            //    break;
 
+                            //case ".VXL":
+                            //    LoadedVoxels.Clear();
+                            //    VoxelFrame = 0;
 
-                            case ".HVA":
-                                var H = new HVA(file);
+                            //    var body = VoxLib.Create(file);
+                            //    if (body != null) {
+                            //        var turname = file.Replace(Path.GetExtension(file), "tur.vxl");
+                            //        var turret = VoxLib.Create(turname);
 
-                                Console.WriteLine("Loaded HVA with {0} sections", H.Sections.Count);
-                                break;
+                            //        var barlname = file.Replace(Path.GetExtension(file), "barl.vxl");
+                            //        var barrel = VoxLib.Create(barlname);
 
+                            //        VoxelChanged = true;
 
-                            case ".VXL":
-                                LoadedVoxels.Clear();
-                                VoxelFrame = 0;
+                            //        LoadedVoxels.Add(body);
+                            //        if (turret != null) {
+                            //            LoadedVoxels.Add(turret);
+                            //        }
+                            //        if (barrel != null) {
+                            //            LoadedVoxels.Add(barrel);
+                            //        }
 
-                                var body = VoxLib.Create(file);
-                                if (body != null) {
-                                    var turname = file.Replace(Path.GetExtension(file), "tur.vxl");
-                                    var turret = VoxLib.Create(turname);
-
-                                    var barlname = file.Replace(Path.GetExtension(file), "barl.vxl");
-                                    var barrel = VoxLib.Create(barlname);
-
-                                    VoxelChanged = true;
-
-                                    LoadedVoxels.Add(body);
-                                    if (turret != null) {
-                                        LoadedVoxels.Add(turret);
-                                    }
-                                    if (barrel != null) {
-                                        LoadedVoxels.Add(barrel);
-                                    }
-
-                                    Console.WriteLine("Loaded VXL with {0} sections", LoadedVoxels.Sum(v => v.Voxel.Sections.Count));
-                                }
-                                break;
-
-                            case ".TMP":
-                            case ".SNO":
-                            case ".URB":
-                            case ".UBN":
-                            case ".LUN":
-                            case ".DES":
-                                if (MousePalette != null) {
-
-                                    Tile = new TMP(file);
-
-                                    Console.WriteLine("Loaded TMP with {0} tiles", Tile.Tiles.Count);
-
-                                    TileTexture = Tile.GetTexture(GraphicsDevice, MousePalette);
-                                }
-                                break;
-
+                            //        Console.WriteLine("Loaded VXL with {0} sections", LoadedVoxels.Sum(v => v.Voxel.Sections.Count));
+                            //    }
+                            //    break;
 
                             case ".YRM":
                             case ".MAP":
-                                var map = new MAP(file);
+                                Map = new MapClass(file);
 
-                                Console.WriteLine("Loaded a map {0} with {1} tiles", file, map.Tiles.Count);
+                                LoadMap();
 
-                                if (map.Preview != null) {
-                                    MapPreview = map.GetPreviewTexture(GraphicsDevice);
-                                } else {
-                                    MapPreview = null;
-                                }
+                                MapTexture = null;
 
                                 break;
 
-                            case ".CSF":
-                                var lbl = new CSF(file);
+                            //case ".CSF":
+                            //    var lbl = new CSF(file);
 
-                                Console.WriteLine("Loaded string table with {0} entries", lbl.Labels.Count);
+                            //    Console.WriteLine("Loaded string table with {0} entries", lbl.Labels.Count);
 
-                                break;
+                            //    break;
 
 
-                            case ".IDX":
-                                var idx = new IDX(file);
+                            //case ".IDX":
+                            //    var idx = new IDX(file);
 
-                                Console.WriteLine("Loaded IDX with {0} samples", idx.Samples.Count);
+                            //    Console.WriteLine("Loaded IDX with {0} samples", idx.Samples.Count);
 
-                                var bagFile = file.Replace(Path.GetExtension(file), ".BAG");
-                                if (File.Exists(bagFile)) {
-                                    var Bag = new BAG(bagFile);
-                                    idx.ReadBAG(Bag);
+                            //    var bagFile = file.Replace(Path.GetExtension(file), ".BAG");
+                            //    if (File.Exists(bagFile)) {
+                            //        var Bag = new BAG(bagFile);
+                            //        idx.ReadBAG(Bag);
 
-                                    var soundPlayer = new libZPlay.ZPlay();
+                            //        var soundPlayer = new libZPlay.ZPlay();
 
-                                    var samplesToExtract = new List<String>() { /*"ichratc", */"ichratta" };
+                            //        var samplesToExtract = new List<String>() { /*"ichratc", */"ichratta" };
 
-                                    foreach (var s in samplesToExtract) {
-                                        var sample = idx.Samples[s];
-                                        if (sample != null) {
-                                            var output = sample.GetWaveHeader().Compile();
+                            //        foreach (var s in samplesToExtract) {
+                            //            var sample = idx.Samples[s];
+                            //            if (sample != null) {
+                            //                var output = sample.GetWaveHeader().Compile();
 
-                                            var outFile = Path.GetDirectoryName(file) + Path.DirectorySeparatorChar + sample.Name + ".WAV";
+                            //                var outFile = Path.GetDirectoryName(file) + Path.DirectorySeparatorChar + sample.Name + ".WAV";
 
-                                            using (var outWav = File.OpenWrite(outFile)) {
-                                                using (var writer = new BinaryWriter(outWav)) {
-                                                    writer.Write(output);
-                                                    writer.Flush();
-                                                }
-                                            }
+                            //                using (var outWav = File.OpenWrite(outFile)) {
+                            //                    using (var writer = new BinaryWriter(outWav)) {
+                            //                        writer.Write(output);
+                            //                        writer.Flush();
+                            //                    }
+                            //                }
 
-                                            if (!soundPlayer.OpenStream(false, false, ref output, (uint)output.Length, libZPlay.TStreamFormat.sfWav)) {
-                                                Console.WriteLine("Sound failed: {0}.", soundPlayer.GetError());
-                                                break;
-                                            }
+                            //                if (!soundPlayer.OpenStream(false, false, ref output, (uint)output.Length, libZPlay.TStreamFormat.sfWav)) {
+                            //                    Console.WriteLine("Sound failed: {0}.", soundPlayer.GetError());
+                            //                    break;
+                            //                }
 
-                                            if (!soundPlayer.StartPlayback()) {
-                                                Console.WriteLine("Sound failed: {0}.", soundPlayer.GetError());
-                                                break;
-                                            }
+                            //                if (!soundPlayer.StartPlayback()) {
+                            //                    Console.WriteLine("Sound failed: {0}.", soundPlayer.GetError());
+                            //                    break;
+                            //                }
 
-                                        }
-                                    }
-                                }
+                            //            }
+                            //        }
+                            //    }
 
-                                break;
+                            //    break;
                         }
 
                     }
@@ -327,162 +323,190 @@ namespace CnCpp {
             if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
                 this.Exit();
 
-            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Space)) {
-                offX = defOX;
-                offY = defOY;
-                rotation = defRotation;
-                scale = 1f;
-            }
+            //if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Space)) {
+            //    offX = defOX;
+            //    offY = defOY;
+            //    rotation = defRotation;
+            //    scale = 1f;
+            //}
 
-            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) {
-                offY -= (int)scale;
-            } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) {
-                offY += (int)scale;
-            }
+            //if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) {
+            //    offY -= (int)scale;
+            //} else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) {
+            //    offY += (int)scale;
+            //}
 
-            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Left)) {
-                offX -= (int)scale;
-            } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Right)) {
-                offX += (int)scale;
-            }
+            //if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Left)) {
+            //    offX -= (int)scale;
+            //} else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Right)) {
+            //    offX += (int)scale;
+            //}
 
-            var rot = MathHelper.PiOver4 / 4;
+            //var rot = MathHelper.PiOver4 / 4;
 
-            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Q)) {
-                rotation.X += rot;
-            } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.A)) {
-                rotation.X -= rot;
-            }
+            //if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Q)) {
+            //    rotation.X += rot;
+            //} else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.A)) {
+            //    rotation.X -= rot;
+            //}
 
-            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.W)) {
-                rotation.Y += rot;
-            } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.S)) {
-                rotation.Y -= rot;
-            }
+            //if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.W)) {
+            //    rotation.Y += rot;
+            //} else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.S)) {
+            //    rotation.Y -= rot;
+            //}
 
-            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.E)) {
-                rotation.Z += rot;
-            } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.D)) {
-                rotation.Z -= rot;
-            }
+            //if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.E)) {
+            //    rotation.Z += rot;
+            //} else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.D)) {
+            //    rotation.Z -= rot;
+            //}
 
-            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Multiply)) {
-                scale *= 1.01f;
-            } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Divide)) {
-                scale /= 1.01f;
-            }
+            //if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Multiply)) {
+            //    scale *= 1.01f;
+            //} else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Divide)) {
+            //    scale /= 1.01f;
+            //}
 
-            if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.L)) {
-                effect.LightingEnabled = !effect.LightingEnabled;
-            }
+            //if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.L)) {
+            //    effect.LightingEnabled = !effect.LightingEnabled;
+            //}
 
-            if (LoadedVoxels.Count > 0) {
-                var fcount = (int)(LoadedVoxels[0].MotLib.Header.FrameCount - 1);
-                if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Z)) {
-                    if (VoxelFrame < fcount) {
-                        ++VoxelFrame;
-                    } else {
-                        VoxelFrame = 0;
-                    }
-                    VoxelChanged = true;
-                } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.X)) {
-                    if (VoxelFrame > 0) {
-                        --VoxelFrame;
-                    } else {
-                        VoxelFrame = fcount;
-                    }
-                    VoxelChanged = true;
+            //if (LoadedVoxels.Count > 0) {
+            //    var fcount = (int)(LoadedVoxels[0].MotLib.Header.FrameCount - 1);
+            //    if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Z)) {
+            //        if (VoxelFrame < fcount) {
+            //            ++VoxelFrame;
+            //        } else {
+            //            VoxelFrame = 0;
+            //        }
+            //        VoxelChanged = true;
+            //    } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.X)) {
+            //        if (VoxelFrame > 0) {
+            //            --VoxelFrame;
+            //        } else {
+            //            VoxelFrame = fcount;
+            //        }
+            //        VoxelChanged = true;
+            //    }
+            //}
+
+
+            //// TODO: Add your update logic here
+
+            //var pos = Mouse.GetState();
+
+            //MousePos.X = pos.X;
+            //MousePos.Y = pos.Y;
+
+            //bool MouseFrameChanged = false;
+
+            //lock (plock) {
+            //    if (MouseTextures == null) {
+            //        CurrentMouseTexture = null;
+            //    } else {
+            //        if (MouseFrame == -1) {
+            //            ++MouseFrame;
+            //            MouseFrameChanged = true;
+            //        }
+
+            //        if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) || (pos.ScrollWheelValue > MouseScroll)) {
+            //            if ((MouseFrame + 1) < (int)MouseTextures.FrameCount) {
+            //                ++MouseFrame;
+            //                MouseFrameChanged = true;
+            //            }
+            //        } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) || (pos.ScrollWheelValue < MouseScroll)) {
+            //            if (MouseFrame > -1) {
+            //                --MouseFrame;
+            //                MouseFrameChanged = true;
+            //            }
+            //        }
+
+            //        MouseScroll = pos.ScrollWheelValue;
+
+            //        if (MouseFrameChanged) {
+            //            if (MouseTextures != null && MouseFrame > -1) {
+            //                CurrentMouseTexture = MouseTextures.GetTexture((uint)MouseFrame, graphics.GraphicsDevice);
+            //            }
+            //        }
+
+            //    }
+            //}
+
+            //if (VoxelChanged) {
+            //    VoxelChanged = false;
+            //    if (MousePalette != null) {
+            //        var combinedVertices = new List<VXL.VertexPositionColorNormal>();
+            //        var combinedIndices = new List<int>();
+
+            //        foreach (var V in LoadedVoxels) {
+            //            var Vertices = new List<VXL.VertexPositionColorNormal>();
+            //            var Indices = new List<int>();
+
+            //            V.Voxel.GetVertices(MousePalette, VoxelFrame, Vertices, Indices);
+
+            //            var indexShift = combinedVertices.Count;
+
+            //            combinedVertices.AddRange(Vertices);
+
+            //            combinedIndices.AddRange(Indices.Select(ix => ix + indexShift));
+            //            //  break;
+            //        }
+
+            //        VoxelContent = combinedVertices.ToArray();
+            //        VoxelIndices = combinedIndices.ToArray();
+
+            //        //Console.WriteLine("Loaded {0} vertices and {1} indices", VoxelContent.Length, VoxelIndices.Length);
+
+            //        if (vertexBuffer != null) {
+            //            vertexBuffer.Dispose();
+            //        }
+
+            //        // Initialize the vertex buffer, allocating memory for each vertex.
+            //        vertexBuffer = new VertexBuffer(graphics.GraphicsDevice, VXL.VertexPositionColorNormal.VertexDeclaration, VoxelContent.Length, BufferUsage.WriteOnly);
+
+            //        // Set the vertex buffer data to the array of vertices.
+            //        vertexBuffer.SetData<VXL.VertexPositionColorNormal>(VoxelContent);
+
+            //        indexBuffer = new IndexBuffer(graphics.GraphicsDevice, typeof(int), VoxelIndices.Length, BufferUsage.WriteOnly);
+
+            //        indexBuffer.SetData(VoxelIndices);
+
+            //    }
+            //}
+
+            if (Map != null) {
+
+                bool MapMoved = false;
+
+                int MapDelta = 15;
+
+                if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) {
+                    Tactical.ScreenArea.Y -= MapDelta;
+                    MapMoved = true;
+                } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) {
+                    Tactical.ScreenArea.Y += MapDelta;
+                    MapMoved = true;
                 }
-            }
 
-
-            // TODO: Add your update logic here
-
-            var pos = Mouse.GetState();
-
-            MousePos.X = pos.X;
-            MousePos.Y = pos.Y;
-
-            bool MouseFrameChanged = false;
-
-            lock (plock) {
-                if (MouseTextures == null) {
-                    CurrentMouseTexture = null;
-                } else {
-                    if (MouseFrame == -1) {
-                        ++MouseFrame;
-                        MouseFrameChanged = true;
-                    }
-
-                    if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) || (pos.ScrollWheelValue > MouseScroll)) {
-                        if ((MouseFrame + 1) < (int)MouseTextures.FrameCount) {
-                            ++MouseFrame;
-                            MouseFrameChanged = true;
-                        }
-                    } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) || (pos.ScrollWheelValue < MouseScroll)) {
-                        if (MouseFrame > -1) {
-                            --MouseFrame;
-                            MouseFrameChanged = true;
-                        }
-                    }
-
-                    MouseScroll = pos.ScrollWheelValue;
-
-                    if (MouseFrameChanged) {
-                        if (MouseTextures != null && MouseFrame > -1) {
-                            CurrentMouseTexture = MouseTextures.GetTexture((uint)MouseFrame, graphics.GraphicsDevice);
-                        }
-                    }
-
-                    if (CurrentMouseTexture != null && kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.S)) {
-                        var outdir = Directory.GetCurrentDirectory();
-                        var outfile = Path.Combine(outdir, "scr.png");
-                        using (FileStream s = File.OpenWrite(outfile)) {
-                            CurrentMouseTexture.SaveAsPng(s, CurrentMouseTexture.Width, CurrentMouseTexture.Height);
-                        }
-                    }
+                if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Left)) {
+                    Tactical.ScreenArea.X -= MapDelta;
+                    MapMoved = true;
+                } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Right)) {
+                    Tactical.ScreenArea.X += MapDelta;
+                    MapMoved = true;
                 }
-            }
 
-            if (VoxelChanged) {
-                VoxelChanged = false;
-                if (MousePalette != null) {
-                    var combinedVertices = new List<VXL.VertexPositionColorNormal>();
-                    var combinedIndices = new List<int>();
+                if (MapMoved) {
+                    MapTextureChangePending = true;
+                }
 
-                    foreach (var V in LoadedVoxels) {
-                        var Vertices = new List<VXL.VertexPositionColorNormal>();
-                        var Indices = new List<int>();
-
-                        V.Voxel.GetVertices(MousePalette, VoxelFrame, Vertices, Indices);
-
-                        var indexShift = combinedVertices.Count;
-
-                        combinedVertices.AddRange(Vertices);
-
-                        combinedIndices.AddRange(Indices.Select(ix => ix + indexShift));
-                        //  break;
+                if (MapTexture != null && kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.S)) {
+                    var outdir = Directory.GetCurrentDirectory();
+                    var outfile = Path.Combine(outdir, "scr.png");
+                    using (FileStream s = File.OpenWrite(outfile)) {
+                        MapTexture.SaveAsPng(s, MapTexture.Width, MapTexture.Height);
                     }
-
-                    VoxelContent = combinedVertices.ToArray();
-                    VoxelIndices = combinedIndices.ToArray();
-
-                    //Console.WriteLine("Loaded {0} vertices and {1} indices", VoxelContent.Length, VoxelIndices.Length);
-
-                    if (vertexBuffer != null) {
-                        vertexBuffer.Dispose();
-                    }
-
-                    // Initialize the vertex buffer, allocating memory for each vertex.
-                    vertexBuffer = new VertexBuffer(graphics.GraphicsDevice, VXL.VertexPositionColorNormal.VertexDeclaration, VoxelContent.Length, BufferUsage.WriteOnly);
-
-                    // Set the vertex buffer data to the array of vertices.
-                    vertexBuffer.SetData<VXL.VertexPositionColorNormal>(VoxelContent);
-
-                    indexBuffer = new IndexBuffer(graphics.GraphicsDevice, typeof(int), VoxelIndices.Length, BufferUsage.WriteOnly);
-
-                    indexBuffer.SetData(VoxelIndices);
-
                 }
             }
 
@@ -518,10 +542,22 @@ namespace CnCpp {
             //    spriteBatch.End();
             //}
 
-            if (TileTexture != null) {
+            if (Map != null && (MapTextureChangePending || MapTexture == null)) {
+                if (TimeSinceMapUpdate.TotalMilliseconds >= 100) {
+                    MapTexture = Map.GetTexture(GraphicsDevice);
+                    TimeSinceMapUpdate = new TimeSpan(0);
+                    MapTextureChangePending = false;
+                } else {
+                    TimeSinceMapUpdate += gameTime.ElapsedGameTime;
+                }
+            }
+
+            if (MapTexture != null) {
                 spriteBatch.Begin();
 
-                spriteBatch.Draw(TileTexture, MousePos, Color.White);
+                var MapPos = new Vector2(0, 0);
+
+                spriteBatch.Draw(MapTexture, MapPos, Color.White);
 
                 spriteBatch.End();
             }
@@ -630,5 +666,26 @@ namespace CnCpp {
             FileSystem.LoadMIX("THEMEMD.MIX");
             FileSystem.LoadMIX("MOVMD03.MIX");
         }
+
+        private void LoadMap() {
+            //if (Map.Preview != null) {
+            //    MapPreview = Map.GetPreviewTexture(GraphicsDevice);
+            //} else {
+            //    MapPreview = null;
+            //}
+
+            Map.Initialize();
+
+            Tactical.SetMap(Map);
+
+            IsoTileTypeClass.LoadListFromINI(Map.TheaterData, true);
+        }
+
+        TacticalClass Tactical;
+
+        private void InitTacticalView() {
+            Tactical = TacticalClass.Create(graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
+        }
+
     }
 }

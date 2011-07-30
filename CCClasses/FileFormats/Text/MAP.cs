@@ -8,7 +8,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace CCClasses.FileFormats.Text {
-    public class MAP : TextFileFormat {
+    public class MAP : INI {
         public class TilePacked {
             public const int ByteSize = 11;
             public Int16 X;
@@ -29,10 +29,8 @@ namespace CCClasses.FileFormats.Text {
             }
         };
 
-        public MAP(String filename = null) : base(filename) {
+        public MAP(CCFileClass ccFile = null) : base(ccFile) {
         }
-
-        private INI MapINI;
 
         private byte[] IsoMapPack;
 
@@ -45,10 +43,12 @@ namespace CCClasses.FileFormats.Text {
 
         public List<int> Overlays = new List<int>();
 
-        public override bool ReadFile(String filename) {
-            MapINI = new INI(filename);
-
-            if (!MapINI.SectionExists("IsoMapPack5")) {
+        protected override bool ReadFile(StreamReader r) {
+            if (!base.ReadFile(r)) {
+                ParseError("Failed to read map INI.");
+                return false;
+            }
+            if (!SectionExists("IsoMapPack5")) {
                 return false;
             }
 
@@ -66,9 +66,9 @@ namespace CCClasses.FileFormats.Text {
                 Tiles.Add(T);
             }
 
-            if (MapINI.SectionExists("Preview") && MapINI.SectionExists("PreviewPack")) {
+            if (SectionExists("Preview") && SectionExists("PreviewPack")) {
                 int[] PSize;
-                if (MapINI.Get4Integers("Preview", "Size", out PSize, new int[4])) {
+                if (Get4Integers("Preview", "Size", out PSize, new int[4])) {
                     PreviewSize = new Rectangle(PSize[0], PSize[1], PSize[2], PSize[3]);
                     if (PreviewSize.Width > 0 && PreviewSize.Height > 0) {
                         Preview = new Color[PreviewSize.Width * PreviewSize.Height];
@@ -93,7 +93,7 @@ namespace CCClasses.FileFormats.Text {
                 }
             }
 
-            if (MapINI.SectionExists("OverlayPack")) {
+            if (SectionExists("OverlayPack")) {
                 Overlays.Clear();
                 var unpackedOverlays = UnpackSectionLCW("OverlayPack");
                 foreach (var ixOverlay in unpackedOverlays) {
@@ -105,7 +105,7 @@ namespace CCClasses.FileFormats.Text {
         }
 
         private byte[] UnpackSectionLZO(String Section) {
-            var Compressed = MapINI.ReadSection(Section);
+            var Compressed = ReadSection(Section);
 
             var Un64 = Convert.FromBase64String(Compressed);
 
@@ -113,7 +113,7 @@ namespace CCClasses.FileFormats.Text {
         }
 
         private byte[] UnpackSectionLCW(String Section) {
-            var Compressed = MapINI.ReadSection(Section);
+            var Compressed = ReadSection(Section);
 
             var Un64 = Convert.FromBase64String(Compressed);
 

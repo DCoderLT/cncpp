@@ -312,7 +312,7 @@ namespace CCClasses.FileFormats.Binary {
 
         public Dictionary<String, SampleHeader> Samples = new Dictionary<string, SampleHeader>();
 
-        public IDX(String filename = null) : base(filename) {
+        public IDX(CCFileClass ccFile = null) : base(ccFile) {
         }
 
         public SampleHeader this[String Name] {
@@ -324,7 +324,8 @@ namespace CCClasses.FileFormats.Binary {
             }
         }
 
-        public override bool ReadFile(BinaryReader r, long length) {
+        protected override bool ReadFile(BinaryReader r) {
+            var length = (int)r.BaseStream.Length;
             if (length < IDXHeader.ByteSize) {
                 return false;
             }

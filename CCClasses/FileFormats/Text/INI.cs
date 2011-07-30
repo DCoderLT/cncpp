@@ -66,7 +66,7 @@ namespace CCClasses.FileFormats.Text {
 
         public Dictionary<String, INISection> Sections = new Dictionary<string, INISection>();
 
-        public INI(String filename = null) : base(filename) {
+        public INI(CCFileClass ccFile = null) : base(ccFile) {
         }
         
         public void Clear() {
@@ -82,7 +82,7 @@ namespace CCClasses.FileFormats.Text {
             return false;
         }
 
-        public override bool ReadFile(StreamReader s) {
+        protected override bool ReadFile(StreamReader s) {
             String line = null;
             String lastSection = "";
             while ((line = s.ReadLine()) != null) {

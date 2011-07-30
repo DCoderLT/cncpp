@@ -50,6 +50,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CellClass.cs" />
     <Compile Include="FileFormats\Binary\BAG.cs" />
     <Compile Include="FileFormats\Binary\CSF.cs" />
     <Compile Include="FileFormats\Binary\HVA.cs" />
@@ -57,7 +58,7 @@
     <Compile Include="FileFormats\Binary\TMP.cs" />
     <Compile Include="FileFormats\Binary\VXL.cs" />
     <Compile Include="FileFormats\Binary\WAV.cs" />
-    <Compile Include="FileFormats\IFileFormat.cs" />
+    <Compile Include="FileFormats\FileFormat.cs" />
     <Compile Include="FileFormats\Text\INI.cs" />
     <Compile Include="FileFormats\Binary\MIX.cs" />
     <Compile Include="FileFormats\Binary\MIX_Magic.cs" />
@@ -66,13 +67,18 @@
     <Compile Include="FileFormats\Text\MAP.cs" />
     <Compile Include="FileSystem.cs" />
     <Compile Include="Helpers\Extensions.cs" />
+    <Compile Include="Helpers\ZBufferedTexture.cs" />
+    <Compile Include="IsoTileTypeClass.cs" />
     <Compile Include="Libraries\Blowfish.cs" />
     <Compile Include="Libraries\Crc32.cs" />
     <Compile Include="Libraries\LCW.cs" />
     <Compile Include="Libraries\libZPlay.cs" />
     <Compile Include="Libraries\LZO.cs" />
+    <Compile Include="MapClass.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Helpers\Util.cs" />
+    <Compile Include="TacticalClass.cs" />
+    <Compile Include="Theater.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

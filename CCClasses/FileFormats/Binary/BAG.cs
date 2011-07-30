@@ -2,16 +2,17 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 
 namespace CCClasses.FileFormats.Binary {
     public class BAG : BinaryFileFormat {
         public byte[] Data;
 
-        public BAG(String filename = null) : base(filename) { 
+        public BAG(CCFileClass ccFile = null) : base(ccFile) { 
         }
 
-        public override bool ReadFile(System.IO.BinaryReader r, long length) {
-            Data = r.ReadBytes((int)length);
+        protected override bool ReadFile(BinaryReader r) {
+            Data = r.ReadBytes((int)r.BaseStream.Length);
             return true;
         }
 
