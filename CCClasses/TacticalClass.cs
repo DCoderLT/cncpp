@@ -72,16 +72,22 @@ namespace CCClasses {
         public CellStruct CellPosition(CellClass c) {
             var p2 = c.Position2DCells;
 
-            var dx = p2.X - ScreenArea.Left;
-            var dy = p2.Y - ScreenArea.Top;
+            var b = c.TileDimensions;
 
-            dy -= (int)(c.Level * 15);
+            var x = p2.X - ScreenArea.Left;
+            var y = p2.Y - ScreenArea.Top;
 
-//            Debug.WriteLine("Cell at {0}x{1} got {2}x{3} as its tactical", c.X, c.Y, dx, dy);
+            y -= (int)(c.Level * FileFormats.Binary.TMP.TileHeight / 2);
 
-            if (dx >= -30 && dx <= Width + 30) {
-                if (dy >= -30 && dy <= Height + 15) {
-                    c.TacticalPosition = new CellStruct(dx, dy);
+            var dx = x + b.Left;
+            var dy = y + b.Top;
+
+            var mx = dx + b.Width;
+            var my = dy + b.Height;
+
+            if (mx >= -30 && dx <= Width + 30) {
+                if (my >= -30 && dy <= Height + 15) {
+                    c.TacticalPosition = new CellStruct(x, y);
                     c.VisibleInTactical = true;
                     return c.TacticalPosition;
                 }

@@ -121,5 +121,23 @@ namespace CCClasses {
                 tile.DrawSubTileExtra(IsoTileTypeSubIndex, tex, start, Level);
             }
         }
+
+        public TMP.TileHeader TileTMP {
+            get {
+                if (IsoTile != null) {
+                    return IsoTile.Tile.Tiles[IsoTileTypeSubIndex];
+                }
+                return null;
+            }
+        }
+
+        public Rectangle TileDimensions {
+            get {
+                if (IsoTile != null) {
+                    return TileTMP.Bounds;
+                }
+                return new Rectangle(0, 0, 0, 0);
+            }
+        }
     }
 }

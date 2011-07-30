@@ -65,6 +65,7 @@ namespace CCClasses.FileFormats.Binary {
             public byte[] ExtraZData;
 
             internal int Position;
+            public Rectangle Bounds;
 
             public int ExtrasArea {
                 get {
@@ -92,6 +93,8 @@ namespace CCClasses.FileFormats.Binary {
                 RampType = data.Array[offs + 42];
                 RadarLeftColor = new Color(data.Array[offs + 43], data.Array[offs + 44], data.Array[offs + 45]);
                 RadarRightColor = new Color(data.Array[offs + 46], data.Array[offs + 47], data.Array[offs + 48]);
+
+                Bounds = new Rectangle(0, 0, TileWidth, TileHeight);
 
                 var GraphicsLength = TileHeight * TileWidth / 2;
 
@@ -130,7 +133,16 @@ namespace CCClasses.FileFormats.Binary {
                         ExtraZData = new byte[extraArea];
                         Buffer.BlockCopy(data.Array, offs + ExtraZOffset, ExtraZData, 0, extraArea);
                     }
+
+                    var x = Math.Min(ExtraX - X, 0);
+                    var y = Math.Min(ExtraY - Y, 0);
+                    var w = Math.Max(ExtraX - X + ExtraWidth, TileWidth) - x;
+                    var h = Math.Max(ExtraY - Y + ExtraHeight, TileHeight) - y;
+
+                    Bounds = new Rectangle(x, y, w, h);
                 }
+
+
             }
 
             /// <summary>
