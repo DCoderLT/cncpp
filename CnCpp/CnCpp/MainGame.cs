@@ -35,7 +35,7 @@ namespace CnCpp {
         private MapClass Map;
         private bool MapTextureChangePending;
         private Texture2D MapTexture;
-        private TimeSpan TimeSinceMapUpdate; 
+        private TimeSpan TimeSinceMapUpdate;
 
         private INI INIFile;
 
@@ -71,6 +71,15 @@ namespace CnCpp {
 
         private float scale = 1f;
 
+        protected enum combinedKeyState {
+            vUp = 1,
+            vDown = 2,
+            vLeft = 4,
+            vRight = 8,
+        };
+
+        protected combinedKeyState combinedState = 0;
+        protected TimeSpan timeSinceLogicUpdate;
 
         protected String GameDir = "";
 
@@ -324,6 +333,85 @@ namespace CnCpp {
             if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
                 this.Exit();
 
+            if (timeSinceLogicUpdate.TotalMilliseconds < 25) {
+                timeSinceLogicUpdate += gameTime.ElapsedGameTime;
+
+                var down = kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down);
+                var up = kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up);
+
+                var left = kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Left);
+                var right = kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Right);
+
+                if (down) {
+                    if (combinedState.HasFlag(combinedKeyState.vUp)) {
+                        combinedState &= ~combinedKeyState.vUp;
+                    } else {
+                        combinedState |= combinedKeyState.vDown;
+                    }
+                }
+
+                if (up) {
+                    if (combinedState.HasFlag(combinedKeyState.vDown)) {
+                        combinedState &= ~combinedKeyState.vDown;
+                    } else {
+                        combinedState |= combinedKeyState.vUp;
+                    }
+                }
+
+                if (left) {
+                    if (combinedState.HasFlag(combinedKeyState.vRight)) {
+                        combinedState &= ~combinedKeyState.vRight;
+                    } else {
+                        combinedState |= combinedKeyState.vLeft;
+                    }
+                }
+
+                if (right) {
+                    if (combinedState.HasFlag(combinedKeyState.vLeft)) {
+                        combinedState &= ~combinedKeyState.vLeft;
+                    } else {
+                        combinedState |= combinedKeyState.vRight;
+                    }
+                }
+
+            } else {
+                if (Map != null) {
+
+                    bool MapMoved = false;
+
+                    if (combinedState.HasFlag(combinedKeyState.vUp)) {
+                        Tactical.NudgeY(-30);
+                        MapMoved = true;
+                    } else if (combinedState.HasFlag(combinedKeyState.vDown)) {
+                        Tactical.NudgeY(+30);
+                        MapMoved = true;
+                    }
+
+                    if (combinedState.HasFlag(combinedKeyState.vLeft)) {
+                        Tactical.NudgeX(-30);
+                        MapMoved = true;
+                    } else if (combinedState.HasFlag(combinedKeyState.vRight)) {
+                        Tactical.NudgeX(+30);
+                        MapMoved = true;
+                    }
+
+                    if (MapMoved) {
+                        MapTextureChangePending = true;
+                    }
+
+                    //if (MapTexture != null && kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.S)) {
+                    //    var outdir = Directory.GetCurrentDirectory();
+                    //    var outfile = Path.Combine(outdir, "scr.png");
+                    //    using (FileStream s = File.OpenWrite(outfile)) {
+                    //        MapTexture.SaveAsPng(s, MapTexture.Width, MapTexture.Height);
+                    //    }
+                    //}
+                }
+
+                combinedState = 0;
+                timeSinceLogicUpdate = new TimeSpan(0);
+            }
+
             //if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Space)) {
             //    offX = defOX;
             //    offY = defOY;
@@ -475,41 +563,6 @@ namespace CnCpp {
 
             //    }
             //}
-
-            if (Map != null) {
-
-                bool MapMoved = false;
-
-                int MapDelta = 15;
-
-                if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) {
-                    Tactical.NudgeY(-30);
-                    MapMoved = true;
-                } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) {
-                    Tactical.NudgeY(+30);
-                    MapMoved = true;
-                }
-
-                if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Left)) {
-                    Tactical.NudgeX(-30);
-                    MapMoved = true;
-                } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Right)) {
-                    Tactical.NudgeX(+30);
-                    MapMoved = true;
-                }
-
-                if (MapMoved) {
-                    MapTextureChangePending = true;
-                }
-
-                if (MapTexture != null && kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.S)) {
-                    var outdir = Directory.GetCurrentDirectory();
-                    var outfile = Path.Combine(outdir, "scr.png");
-                    using (FileStream s = File.OpenWrite(outfile)) {
-                        MapTexture.SaveAsPng(s, MapTexture.Width, MapTexture.Height);
-                    }
-                }
-            }
 
             base.Update(gameTime);
         }
