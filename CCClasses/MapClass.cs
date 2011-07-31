@@ -16,6 +16,7 @@ namespace CCClasses {
         public Theater TheaterData;
 
         public Rectangle MapSize;
+        public Rectangle LocalSize;
 
         private Rectangle MapRect;
 
@@ -70,9 +71,19 @@ namespace CCClasses {
                 }
                 return Map.Cells[CurrentCellIndex];
             }
+
+            public IEnumerable<CellClass> Range() {
+                this.Reset();
+                CellClass c;
+                while ((c = NextCell()) != null) {
+                    yield return c;
+                }
+            }
         }
 
         public CellIterator cellIter;
+
+        public int BaseLevel;
 
 
         public MapClass(String filename) {
@@ -93,6 +104,8 @@ namespace CCClasses {
                 throw new InvalidDataException(String.Format("Theater {0} is not recognized.", TheaterName));
             }
 
+            MapFile.GetInteger("Map", "Level", out BaseLevel, 0);
+
             int[] sz = new int[4];
             if (MapFile.Get4Integers("Map", "Size", out sz, new int[4])) {
                 MapSize = new Rectangle() { X = sz[0], Y = sz[1], Width = sz[2], Height = sz[3] };
@@ -102,7 +115,9 @@ namespace CCClasses {
                 CreateMap();
             }
 
-            cellIter = new CellIterator(this);
+            if(MapFile.Get4Integers("Map", "LocalSize", out sz, sz)) {
+                LocalSize = new Rectangle() { X = sz[0], Y = sz[1], Width = sz[2], Height = sz[3] };
+            }
 
             TheaterData = Theater.Theaters[TheaterName];
 
@@ -115,7 +130,9 @@ namespace CCClasses {
                 if (cell != null) {
                     cell.IsoTileTypeIndex = (int)packedTile.TileTypeIndex;
                     cell.IsoTileTypeSubIndex = (int)packedTile.TileSubtypeIndex;
-                    cell.Level = packedTile.Level;
+                    cell.Level = BaseLevel + packedTile.Level;
+                } else {
+                    Debug.WriteLine("Failed to find cell at {0}x{1}", x, y);
                 }
             }
         }
@@ -150,7 +167,7 @@ namespace CCClasses {
                     if (v3 > v4) {
                         if (v1 - v2 < v4) {
                             if (v2 - v1 < v4) {
-                                if (v3 < v4 + 2 * MapRect.Height) {
+                                if (v3 <= v4 + 2 * MapRect.Height) {
                                     var cell = new CellClass() {
                                         X = v1,
                                         Y = v2,
@@ -166,6 +183,32 @@ namespace CCClasses {
                 lineBaseOffset += 512;
             }
 
+            cellIter = new CellIterator(this);
+
+            foreach (var c in cellIter.Range()) {
+                var x = c.X;
+                var y = c.Y;
+                
+                var W = MapSize.Width;
+
+                if (x + y < W - 2 * MapSize.Top + 1
+                    || y - x > W + 2 * MapSize.Left - 1
+                    || x + y > W + 2 * ((2 * MapSize.Height - 8) - MapSize.Top)
+                    || x - y > W + 2 * (- MapSize.Left - 1)) {
+
+                    var idxCell = x + (y << 9);
+                    var newC = new CellClass() {
+                        X = x,
+                        Y = y,
+                        IsoTileTypeIndex = 65535,
+                        IsoTileTypeSubIndex = 0,
+                        Slope = 0,
+                        OverlayTypeIndex = -1,
+                        Level = 0
+                    };
+                    Cells[idxCell] = newC;
+                }
+            }
         }
 
         Helpers.ZBufferedTexture TileTexture;

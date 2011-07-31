@@ -43,8 +43,8 @@ namespace CCClasses {
 
     public class CellClass {
         public int X, Y;
-        public int IsoTileTypeIndex = -1;
-        public int IsoTileTypeSubIndex = -1;
+        public int IsoTileTypeIndex = 65535;
+        public int IsoTileTypeSubIndex = 0;
         public int Level = 0;
         public int Slope = 0;
         public int OverlayTypeIndex = -1;

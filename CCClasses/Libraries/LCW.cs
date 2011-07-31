@@ -200,7 +200,7 @@ namespace CCClasses.Libraries {
                 int InputSize = BitConverter.ToInt16(packed, offs);
                 int OutputSize = BitConverter.ToInt16(packed, offs + 2);
                 offs += 4;
-                if (offs + InputSize < packed.Length) {
+                if (offs + InputSize <= packed.Length) {
                     var Input = new byte[InputSize];
                     Buffer.BlockCopy(packed, offs, Input, 0, InputSize);
 

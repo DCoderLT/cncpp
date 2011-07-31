@@ -70,7 +70,7 @@ namespace CCClasses.Libraries {
                 int InputSize = BitConverter.ToInt16(packed, offs);
                 int OutputSize = BitConverter.ToInt16(packed, offs + 2);
                 offs += 4;
-                if (offs + InputSize < packed.Length) {
+                if (offs + InputSize <= packed.Length) {
                     var Input = new byte[InputSize];
                     Buffer.BlockCopy(packed, offs, Input, 0, InputSize);
 
@@ -87,6 +87,8 @@ namespace CCClasses.Libraries {
                     }
 
                     unpacked.AddRange(Output.Take(OutputSize));
+                } else {
+                    Debug.WriteLine("LZO Chunking problem: offs {0} + inputsize {1} > packed Length {2}", offs, InputSize, packed.Length);
                 }
                 offs += InputSize;
             }

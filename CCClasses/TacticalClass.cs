@@ -40,6 +40,7 @@ namespace CCClasses {
             MQ12 = Math.Sin(MQ05) * MQ11;
         }
 
+        public Rectangle EntireMap = new Rectangle();
         public Rectangle VisibleMap = new Rectangle();
         public Rectangle ScreenArea = new Rectangle();
         public int Width;
@@ -59,6 +60,32 @@ namespace CCClasses {
                 return new TacticalClass(W, H);
             }
             throw new InvalidOperationException("Tactical Class already initialized.");
+        }
+
+        public bool NudgeX(int amount = 60) {
+            ScreenArea.X += amount;
+            if (ScreenArea.Right > VisibleMap.Right) {
+                ScreenArea.X = VisibleMap.Right - ScreenArea.Width;
+                return false;
+            }
+            if (ScreenArea.Left < VisibleMap.Left) {
+                ScreenArea.X = VisibleMap.Left;
+                return false;
+            }
+            return true;
+        }
+
+        public bool NudgeY(int amount = 30) {
+            ScreenArea.Y += amount;
+            if (ScreenArea.Top < VisibleMap.Top) {
+                ScreenArea.Y = VisibleMap.Top;
+                return false;
+            }
+            if (ScreenArea.Bottom > VisibleMap.Bottom) {
+                ScreenArea.Y = VisibleMap.Bottom - ScreenArea.Height;
+                return false;
+            }
+            return true;
         }
 
         public bool UpdateCellPosition(CellClass c) {
@@ -104,13 +131,27 @@ namespace CCClasses {
             Map = _Map;
 
             Map.cellIter.Reset();
-            var start = Map.cellIter.NextCell();
-            CellClass t = Map.cellIter.NextCell(), end = t;
-            while((t = Map.cellIter.NextCell()) != null) {
-                end = t;
+
+            int X1 = Int32.MaxValue, Y1 = Int32.MaxValue, X2 = Int32.MinValue, Y2 = Int32.MinValue;
+
+            foreach(var cell in Map.cellIter.Range()) {
+                var p = cell.Position2DCells;
+                X1 = Math.Min(X1, p.X);
+                X2 = Math.Max(X2, p.X + 60);
+                Y1 = Math.Min(Y1, p.Y);
+                Y2 = Math.Max(Y2, p.Y + 30);
             }
 
-            VisibleMap = new Rectangle(start.Position2DCells.X, start.Position2DCells.Y, end.X - start.X, end.Y - start.Y);
+            EntireMap = new Rectangle(X1, Y1, X2 - X1, Y2 - Y1);
+
+            Debug.Assert(EntireMap.Width / 60 == Map.MapSize.Width, "Map size misconfigured?");
+            Debug.Assert(EntireMap.Height / 30 == Map.MapSize.Height, "Map size misconfigured?");
+
+            var visibleX = Map.LocalSize.X - Map.MapSize.X;
+            var visibleY = Map.LocalSize.Y - Map.MapSize.Y;
+
+            VisibleMap = new Rectangle(EntireMap.X + visibleX * 60 - 30, EntireMap.Y + visibleY * 30 - 15, Map.LocalSize.Width * 60 + 60, Map.LocalSize.Height * 30 + 30);
+
             ScreenArea = new Rectangle(VisibleMap.X, VisibleMap.Y, Width, Height);
         }
     }

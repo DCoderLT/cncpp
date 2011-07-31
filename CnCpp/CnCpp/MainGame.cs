@@ -119,6 +119,7 @@ namespace CnCpp {
                 LoadGameFiles();
 
                 InitTacticalView();
+
             }
         }
 
@@ -482,18 +483,18 @@ namespace CnCpp {
                 int MapDelta = 15;
 
                 if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) {
-                    Tactical.ScreenArea.Y -= MapDelta;
+                    Tactical.NudgeY(-30);
                     MapMoved = true;
                 } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) {
-                    Tactical.ScreenArea.Y += MapDelta;
+                    Tactical.NudgeY(+30);
                     MapMoved = true;
                 }
 
                 if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Left)) {
-                    Tactical.ScreenArea.X -= MapDelta;
+                    Tactical.NudgeX(-30);
                     MapMoved = true;
                 } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Right)) {
-                    Tactical.ScreenArea.X += MapDelta;
+                    Tactical.NudgeX(+30);
                     MapMoved = true;
                 }
 
