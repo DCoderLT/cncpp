@@ -333,7 +333,7 @@ namespace CnCpp {
             if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
                 this.Exit();
 
-            if (timeSinceLogicUpdate.TotalMilliseconds < 25) {
+            if (timeSinceLogicUpdate.TotalMilliseconds < 50) {
                 timeSinceLogicUpdate += gameTime.ElapsedGameTime;
 
                 var down = kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down);
@@ -379,19 +379,22 @@ namespace CnCpp {
 
                     bool MapMoved = false;
 
+                    var deltaX = 15;
+                    var deltaY = 7;
+
                     if (combinedState.HasFlag(combinedKeyState.vUp)) {
-                        Tactical.NudgeY(-30);
+                        Tactical.NudgeY(-deltaY);
                         MapMoved = true;
                     } else if (combinedState.HasFlag(combinedKeyState.vDown)) {
-                        Tactical.NudgeY(+30);
+                        Tactical.NudgeY(+deltaY);
                         MapMoved = true;
                     }
 
                     if (combinedState.HasFlag(combinedKeyState.vLeft)) {
-                        Tactical.NudgeX(-30);
+                        Tactical.NudgeX(-deltaX);
                         MapMoved = true;
                     } else if (combinedState.HasFlag(combinedKeyState.vRight)) {
-                        Tactical.NudgeX(+30);
+                        Tactical.NudgeX(+deltaX);
                         MapMoved = true;
                     }
 
@@ -597,7 +600,8 @@ namespace CnCpp {
             //}
 
             if (Map != null && (MapTextureChangePending || MapTexture == null)) {
-                if (TimeSinceMapUpdate.TotalMilliseconds >= 100) {
+                if (TimeSinceMapUpdate.TotalMilliseconds >= 50) {
+                    Debug.WriteLine("Elapsed: {0} ms", TimeSinceMapUpdate.TotalMilliseconds);
                     MapTexture = Map.GetTexture(GraphicsDevice);
                     TimeSinceMapUpdate = new TimeSpan(0);
                     MapTextureChangePending = false;

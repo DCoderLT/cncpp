@@ -17,16 +17,16 @@ namespace CCClasses.Helpers {
 
         protected Texture2D _Texture;
 
-        protected Color[,] Pixels;
-        protected int[,] ZIndices;
+        protected Color[] Pixels;
+        protected int[] ZIndices;
 
         public ZBufferedTexture(GraphicsDevice gd, int W, int H) {
             Width = W;
             Height = H;
             _Texture = new Texture2D(gd, Width, Height, false, SurfaceFormat.Color);
 
-            Pixels = new Color[Width, Height];
-            ZIndices = new int[Width, Height];
+            Pixels = new Color[Width * Height];
+            ZIndices = new int[Width * Height];
         }
 
         internal PixelPlacementStatus PutPixel(Color clr, int X, int Y, int Z) {
@@ -39,14 +39,16 @@ namespace CCClasses.Helpers {
                 return PixelPlacementStatus.E_BOUNDS;
             }
 
-            if (ZIndices[X, Y] > Z) {
+            var ixPx = Y * Width + X;
+
+            if (ZIndices[ixPx] > Z) {
                 return PixelPlacementStatus.E_ZINDEX;
             }
 
             Compiled = false;
 
-            Pixels[X, Y] = clr;
-            ZIndices[X, Y] = Z;
+            Pixels[ixPx] = clr;
+            ZIndices[ixPx] = Z;
 
             return PixelPlacementStatus.S_OK;
         }
@@ -55,17 +57,7 @@ namespace CCClasses.Helpers {
 
         public Texture2D Compile() {
             if (!Compiled) {
-                var colors = new Color[Height * Width];
-                var ix = 0;
-
-                for (var y = 0; y < Height; ++y) {
-                    for (var x = 0; x < Width; ++x) {
-                        colors[ix] = Pixels[x, y];
-                        ++ix;
-                    }
-                }
-
-                _Texture.SetData(colors);
+                _Texture.SetData(Pixels);
             }
 
             Compiled = true;

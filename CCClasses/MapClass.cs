@@ -227,15 +227,12 @@ namespace CCClasses {
                 Tactical.UpdateCellPosition(c);
             }
 
-            var visibleCells = Cells.Where(c => c != null && c.VisibleInTactical).OrderBy(c => c.Y * Tactical.Width + c.X);
+            var visibleCells = Cells.Where(c => c != null && c.VisibleInTactical);//.OrderBy(c => c.Y * Tactical.Width + c.X);
 
             //var TextureSize = new Rectangle(0, 0, Tactical.Width, Tactical.Height);
 
             foreach (var c in visibleCells) {
                 c.DrawBase(TileTexture);
-            }
-
-            foreach (var c in visibleCells) {
                 c.DrawExtra(TileTexture);
             }
 
