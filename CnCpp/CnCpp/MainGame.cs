@@ -380,7 +380,7 @@ namespace CnCpp {
                     bool MapMoved = false;
 
                     var deltaX = 15;
-                    var deltaY = 10;
+                    var deltaY = 7;
 
                     if (combinedState.HasFlag(combinedKeyState.vUp)) {
                         Tactical.NudgeY(-deltaY);
@@ -400,7 +400,6 @@ namespace CnCpp {
 
                     if (MapTexture == null || MapMoved) {
                         MapTexture = Map.GetTexture(GraphicsDevice);
-                        //Debug.WriteLine("Elapsed: {0} ms + {1} ms", TimeSinceLogicUpdate.TotalMilliseconds, gameTime.TotalGameTime.TotalMilliseconds);
                     }
 
                     //if (MapTexture != null && kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.S)) {

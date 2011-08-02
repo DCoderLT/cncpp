@@ -96,53 +96,32 @@ namespace CCClasses {
 
         public void UpdateCellPosition(CellClass c) {
             if (c != null) {
-                c.PreviouslyClippedInTactical = c.ClippedInTactical;
                 c.PreviouslyVisibleInTactical = c.VisibleInTactical;
                 CellPosition(c);
             }
         }
 
         public void CellPosition(CellClass c) {
-            var p2 = c.Position2DCells;
+            var b = c.Bounds2D;
 
-            var b = c.TileDimensions;
-
-            var w2 = FileFormats.Binary.TMP.TileWidth / 2;
-            var h2 = FileFormats.Binary.TMP.TileHeight / 2;
-
-            var x = p2.X - ScreenArea.Left - w2;
-            var y = p2.Y - ScreenArea.Top - h2;
-
-            y -= (int)(c.Level * h2);
-
-            var dx = x + b.Left;
-            var dy = y + b.Top;
-
-            var mx = dx + b.Width;
-            var my = dy + b.Height;
-
-            //Debug.WriteLine("Cell {0},{1} => {2},{3},{4},{5}", c.X, c.Y, dx, dy, mx, my);
+            b.Offset(-ScreenArea.Left, -ScreenArea.Top);
 
             var pointsToCheck = new Point[] {
-                new Point(dx, dy),
-                new Point(dx, my),
-                new Point(mx, dy),
-                new Point(mx, my),
+                new Point(b.Left, b.Top),
+                new Point(b.Left, b.Bottom),
+                new Point(b.Right, b.Top),
+                new Point(b.Right, b.Bottom),
             };
 
-            var contains = pointsToCheck.Count(p => ScreenBounds.Contains(p));
-
-            if (contains > 0) {
-                c.TacticalPosition = new CellStruct(x, y);
+            if (pointsToCheck.Any(p => ScreenBounds.Contains(p))) {
+                var tl = c.TileDimensions;
+                c.TacticalPosition = new CellStruct(b.Left - tl.Left, b.Top - tl.Top);
                 c.VisibleInTactical = true;
-                c.ClippedInTactical = contains < 4;
-                //Debug.WriteLine("Cell {0},{1} => {2},{3},{4},{5} => {6}:{7}", c.X, c.Y, dx, dy, mx, my, c.PreviouslyClippedInTactical, c.ClippedInTactical);
                 return;
             }
 
             c.TacticalPosition = new CellStruct();
             c.VisibleInTactical = false;
-            c.ClippedInTactical = true;
             return;
         }
 

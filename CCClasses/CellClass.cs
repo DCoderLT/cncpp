@@ -54,8 +54,6 @@ namespace CCClasses {
         protected CellStruct _TacticalPosition;
         public bool VisibleInTactical;
         public bool PreviouslyVisibleInTactical;
-        public bool ClippedInTactical;
-        public bool PreviouslyClippedInTactical;
 
         public CellStruct TacticalPosition {
             get {
@@ -93,6 +91,34 @@ namespace CCClasses {
             get {
                 var pl = Position2DLeptons;
                 return new CellStruct(pl.X / 256, pl.Y / 256);
+            }
+        }
+
+        public CellStruct Position2DCellsTL {
+            get {
+                var p2 = Position2DCells;
+
+                var w2 = FileFormats.Binary.TMP.TileWidth / 2;
+                var h2 = FileFormats.Binary.TMP.TileHeight / 2;
+
+                var x = p2.X - w2;
+                var y = p2.Y - h2;
+
+                y -= (int)(Level * h2);
+
+                return new CellStruct(x, y);
+            }
+        }
+
+        public Rectangle Bounds2D {
+            get {
+                var b = TileDimensions;
+
+                var tl = Position2DCellsTL;
+
+                b.Offset(tl.X, tl.Y);
+
+                return b;
             }
         }
 
