@@ -235,18 +235,16 @@ namespace CCClasses {
             return Tile.Tiles[idx % (int)Tile.Header.Area];
         }
 
-        internal void DrawSubTileBase(int IsoTileTypeSubIndex, Helpers.ZBufferedTexture tex, CellStruct TopLeft, int CellLevel) {
+        internal bool DrawSubTile(int IsoTileTypeSubIndex, Helpers.ZBufferedTexture tex, CellStruct TopLeft, int CellLevel, bool highlight = false) {
             var t = getSubTile(IsoTileTypeSubIndex);
 
-            t.GetBaseTextureStandalone(tex, isoPAL, TopLeft, CellLevel);
-        }
+            var clipped = tex.CopyTexture(t.GetTextureStandalone(isoPAL), new CellStruct(TopLeft.X + t.Bounds.X, TopLeft.Y + t.Bounds.Y), CellLevel * 30, false);
 
-        internal void DrawSubTileExtra(int IsoTileTypeSubIndex, Helpers.ZBufferedTexture tex, CellStruct TopLeft, int CellLevel) {
-            var t = getSubTile(IsoTileTypeSubIndex);
-
-            if (t.HasExtraData) {
-                t.GetExtrasTextureStandalone(tex, isoPAL, TopLeft, CellLevel);
+            if (highlight) {
+                t.Highlight(tex, TopLeft);
             }
+
+            return clipped;
         }
     }
 }

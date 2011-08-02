@@ -79,7 +79,7 @@ namespace CnCpp {
         };
 
         protected combinedKeyState combinedState = 0;
-        protected TimeSpan timeSinceLogicUpdate;
+        protected TimeSpan TimeSinceLogicUpdate;
 
         protected String GameDir = "";
 
@@ -333,8 +333,8 @@ namespace CnCpp {
             if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
                 this.Exit();
 
-            if (timeSinceLogicUpdate.TotalMilliseconds < 50) {
-                timeSinceLogicUpdate += gameTime.ElapsedGameTime;
+            if (TimeSinceLogicUpdate.TotalMilliseconds < 40) {
+                TimeSinceLogicUpdate += gameTime.ElapsedGameTime;
 
                 var down = kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down);
                 var up = kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up);
@@ -380,7 +380,7 @@ namespace CnCpp {
                     bool MapMoved = false;
 
                     var deltaX = 15;
-                    var deltaY = 7;
+                    var deltaY = 10;
 
                     if (combinedState.HasFlag(combinedKeyState.vUp)) {
                         Tactical.NudgeY(-deltaY);
@@ -398,8 +398,9 @@ namespace CnCpp {
                         MapMoved = true;
                     }
 
-                    if (MapMoved) {
-                        MapTextureChangePending = true;
+                    if (MapTexture == null || MapMoved) {
+                        MapTexture = Map.GetTexture(GraphicsDevice);
+                        //Debug.WriteLine("Elapsed: {0} ms + {1} ms", TimeSinceLogicUpdate.TotalMilliseconds, gameTime.TotalGameTime.TotalMilliseconds);
                     }
 
                     //if (MapTexture != null && kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.S)) {
@@ -412,7 +413,7 @@ namespace CnCpp {
                 }
 
                 combinedState = 0;
-                timeSinceLogicUpdate = new TimeSpan(0);
+                TimeSinceLogicUpdate = new TimeSpan(0);
             }
 
             //if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Space)) {
@@ -598,17 +599,6 @@ namespace CnCpp {
 
             //    spriteBatch.End();
             //}
-
-            if (Map != null && (MapTextureChangePending || MapTexture == null)) {
-                if (TimeSinceMapUpdate.TotalMilliseconds >= 50) {
-                    Debug.WriteLine("Elapsed: {0} ms", TimeSinceMapUpdate.TotalMilliseconds);
-                    MapTexture = Map.GetTexture(GraphicsDevice);
-                    TimeSinceMapUpdate = new TimeSpan(0);
-                    MapTextureChangePending = false;
-                } else {
-                    TimeSinceMapUpdate += gameTime.ElapsedGameTime;
-                }
-            }
 
             if (MapTexture != null) {
                 spriteBatch.Begin();

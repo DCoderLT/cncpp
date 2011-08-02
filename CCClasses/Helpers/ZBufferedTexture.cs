@@ -13,6 +13,8 @@ namespace CCClasses.Helpers {
     };
 
     public class ZBufferedTexture {
+        readonly Color DummyColor = new Color(0, 0, 0, 0);
+
         public int Width, Height;
 
         protected Texture2D _Texture;
@@ -20,10 +22,9 @@ namespace CCClasses.Helpers {
         protected Color[] Pixels;
         protected int[] ZIndices;
 
-        public ZBufferedTexture(GraphicsDevice gd, int W, int H) {
+        public ZBufferedTexture(int W, int H) {
             Width = W;
             Height = H;
-            _Texture = new Texture2D(gd, Width, Height, false, SurfaceFormat.Color);
 
             Pixels = new Color[Width * Height];
             ZIndices = new int[Width * Height];
@@ -55,7 +56,10 @@ namespace CCClasses.Helpers {
 
         private bool Compiled = false;
 
-        public Texture2D Compile() {
+        public Texture2D Compile(GraphicsDevice gd) {
+            if (_Texture == null) {
+                _Texture = new Texture2D(gd, Width, Height, false, SurfaceFormat.Color);
+            }
             if (!Compiled) {
                 _Texture.SetData(Pixels);
             }
@@ -64,5 +68,65 @@ namespace CCClasses.Helpers {
 
             return _Texture;
         }
+
+        internal bool CopyBlockFrom(ZBufferedTexture tex, int shiftX, int shiftY, int shiftZ = 0, bool CopyTransparent = true) {
+            var clipped = false;
+            for (var y = 0; y < tex.Height - Math.Abs(shiftY); ++y) {
+                for (var x = 0; x < tex.Width - Math.Abs(shiftX); ++x) {
+                    var oldIx = y * tex.Width + x;
+                    var shX = x + shiftX;
+                    var shY = y + shiftY;
+                    if (shX >= 0 && shX < Width && shY >= 0 && shY < Height) {
+                        var newIx = shY * Width + shX;
+
+                        var oldPx = tex.Pixels[oldIx];
+                        if (oldPx != CCClasses.FileFormats.Binary.PAL.TranslucentColor || CopyTransparent) {
+                            Pixels[newIx] = tex.Pixels[oldIx];
+                            ZIndices[newIx] = tex.ZIndices[oldIx] + shiftZ;
+                        }
+                    } else {
+                        clipped = true;
+                    }
+                }
+            }
+
+            return clipped;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="tex"></param>
+        /// <param name="start"></param>
+        /// <param name="shiftZ"></param>
+        /// <param name="CopyTransparent"></param>
+        /// <returns>Was the texture clipped when drawing?</returns>
+        internal bool CopyTexture(ZBufferedTexture tex, CellStruct start, int shiftZ = 0, bool CopyTransparent = true) {
+            var clipped = false;
+            for (var y = 0; y < tex.Height; ++y) {
+                for (var x = 0; x < tex.Width; ++x) {
+                    var oldIx = y * tex.Width + x;
+                    var shX = x + start.X;
+                    var shY = y + start.Y;
+                    if (shX >= 0 && shX < Width && shY >= 0 && shY < Height) {
+                        var newIx = shY * Width + shX;
+
+                        var oldPx = tex.Pixels[oldIx];
+                        if (oldPx != DummyColor || CopyTransparent) {
+                            var ixZ = tex.ZIndices[oldIx] + shiftZ;
+                            if (ixZ >= ZIndices[newIx]) {
+                                Pixels[newIx] = tex.Pixels[oldIx];
+                                ZIndices[newIx] = ixZ;
+                            }
+                        }
+                    } else {
+                        clipped = true;
+                    }
+                }
+            }
+
+            return clipped;
+        }
+
     }
 }

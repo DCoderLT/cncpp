@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework;
 using CCClasses.FileFormats.Binary;
+using System.Diagnostics;
 
 namespace CCClasses {
     public class CellStruct {
@@ -52,6 +53,9 @@ namespace CCClasses {
 
         protected CellStruct _TacticalPosition;
         public bool VisibleInTactical;
+        public bool PreviouslyVisibleInTactical;
+        public bool ClippedInTactical;
+        public bool PreviouslyClippedInTactical;
 
         public CellStruct TacticalPosition {
             get {
@@ -106,20 +110,23 @@ namespace CCClasses {
             }
         }
 
-        public void DrawBase(Helpers.ZBufferedTexture tex) {
-            var start = TacticalPosition - new CellStruct(30, 15);
+        public void Draw(Helpers.ZBufferedTexture tex) {
             var tile = IsoTile;
+            var start = TacticalPosition;
             if (tile != null) {
-                tile.DrawSubTileBase(IsoTileTypeSubIndex, tex, start, Level);
+//                if (!PreviouslyVisibleInTactical || PreviouslyClippedInTactical) {
+                    //ClippedInTactical = 
+                    tile.DrawSubTile(IsoTileTypeSubIndex, tex, start, Level);
+  //              }
             }
-        }
-
-        public void DrawExtra(Helpers.ZBufferedTexture tex) {
-            var start = TacticalPosition - new CellStruct(30, 15);
-            var tile = IsoTile;
-            if (tile != null) {
-                tile.DrawSubTileExtra(IsoTileTypeSubIndex, tex, start, Level);
-            }
+            
+            //if (!PreviouslyVisibleInTactical || PreviouslyClippedInTactical) {
+            //    if (ClippedInTactical) {
+            //        //Debug.WriteLine("Cell {0},{1} was clipped", X, Y);
+            //    }
+            //} else if (!PreviouslyClippedInTactical) {
+            //    //Debug.WriteLine("Cell {0},{1} was preclipped", X, Y);
+            //}
         }
 
         public TMP.TileHeader TileTMP {

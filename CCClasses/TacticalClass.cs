@@ -46,11 +46,17 @@ namespace CCClasses {
         public int Width;
         public int Height;
 
+        public Rectangle ScreenBounds;
+
         private TacticalClass(int W, int H) {
             Width = W;
             Height = H;
 
             ScreenArea = new Rectangle(0, 0, W, H);
+
+            var scale = new Point(FileFormats.Binary.TMP.TileWidth, FileFormats.Binary.TMP.TileHeight);
+
+            ScreenBounds = new Rectangle(0, 0, W, H); //(int)Math.Ceiling((double)W / scale.X) * scale.X, (int)Math.Ceiling((double)H / scale.Y) * scale.Y);
 
             _Instance = this;
         }
@@ -88,23 +94,26 @@ namespace CCClasses {
             return true;
         }
 
-        public bool UpdateCellPosition(CellClass c) {
-            if (c == null) {
-                return false;
+        public void UpdateCellPosition(CellClass c) {
+            if (c != null) {
+                c.PreviouslyClippedInTactical = c.ClippedInTactical;
+                c.PreviouslyVisibleInTactical = c.VisibleInTactical;
+                CellPosition(c);
             }
-            CellPosition(c);
-            return c.VisibleInTactical;
         }
 
-        public CellStruct CellPosition(CellClass c) {
+        public void CellPosition(CellClass c) {
             var p2 = c.Position2DCells;
 
             var b = c.TileDimensions;
 
-            var x = p2.X - ScreenArea.Left;
-            var y = p2.Y - ScreenArea.Top;
+            var w2 = FileFormats.Binary.TMP.TileWidth / 2;
+            var h2 = FileFormats.Binary.TMP.TileHeight / 2;
 
-            y -= (int)(c.Level * FileFormats.Binary.TMP.TileHeight / 2);
+            var x = p2.X - ScreenArea.Left - w2;
+            var y = p2.Y - ScreenArea.Top - h2;
+
+            y -= (int)(c.Level * h2);
 
             var dx = x + b.Left;
             var dy = y + b.Top;
@@ -112,17 +121,29 @@ namespace CCClasses {
             var mx = dx + b.Width;
             var my = dy + b.Height;
 
-            if (mx >= -30 && dx <= Width + 30) {
-                if (my >= -30 && dy <= Height + 15) {
-                    c.TacticalPosition = new CellStruct(x, y);
-                    c.VisibleInTactical = true;
-                    return c.TacticalPosition;
-                }
+            //Debug.WriteLine("Cell {0},{1} => {2},{3},{4},{5}", c.X, c.Y, dx, dy, mx, my);
+
+            var pointsToCheck = new Point[] {
+                new Point(dx, dy),
+                new Point(dx, my),
+                new Point(mx, dy),
+                new Point(mx, my),
+            };
+
+            var contains = pointsToCheck.Count(p => ScreenBounds.Contains(p));
+
+            if (contains > 0) {
+                c.TacticalPosition = new CellStruct(x, y);
+                c.VisibleInTactical = true;
+                c.ClippedInTactical = contains < 4;
+                //Debug.WriteLine("Cell {0},{1} => {2},{3},{4},{5} => {6}:{7}", c.X, c.Y, dx, dy, mx, my, c.PreviouslyClippedInTactical, c.ClippedInTactical);
+                return;
             }
 
             c.TacticalPosition = new CellStruct();
             c.VisibleInTactical = false;
-            return c.TacticalPosition;
+            c.ClippedInTactical = true;
+            return;
         }
 
         private MapClass Map;

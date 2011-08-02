@@ -67,6 +67,8 @@ namespace CCClasses.FileFormats.Binary {
             internal int Position;
             public Rectangle Bounds;
 
+            public Helpers.ZBufferedTexture _Texture;
+
             public int ExtrasArea {
                 get {
                     return ExtraWidth * ExtraHeight;
@@ -134,27 +136,24 @@ namespace CCClasses.FileFormats.Binary {
                         Buffer.BlockCopy(data.Array, offs + ExtraZOffset, ExtraZData, 0, extraArea);
                     }
 
-                    var x = Math.Min(ExtraX - X, 0);
-                    var y = Math.Min(ExtraY - Y, 0);
-                    var w = Math.Max(ExtraX - X + ExtraWidth, TileWidth) - x;
-                    var h = Math.Max(ExtraY - Y + ExtraHeight, TileHeight) - y;
-
-                    Bounds = new Rectangle(x, y, w, h);
+                    Bounds = Rectangle.Union(new Rectangle(0, 0, TileWidth, TileHeight), new Rectangle(ExtraX - X, ExtraY - Y, ExtraWidth, ExtraHeight));
                 }
-
-
             }
 
-            /// <summary>
-            /// Draws this subtile at a given position in the texture - no extra data
-            /// </summary>
-            /// <param name="data"></param>
-            /// <param name="Palette"></param>
-            /// <param name="TextureBounds"></param>
-            /// <param name="TopLeft"></param>
-            public void GetBaseTextureStandalone(Helpers.ZBufferedTexture tex, PAL Palette, CellStruct TopLeft, int CellLevel) {
-                var beginX = TopLeft.X;
-                var beginY = TopLeft.Y;
+            public Helpers.ZBufferedTexture GetTextureStandalone(PAL Palette) {
+                if (_Texture == null) {
+                    _Texture = new Helpers.ZBufferedTexture(Bounds.Width, Bounds.Height);
+                    GetBaseTextureStandalone(Palette);
+                    if (HasExtraData) {
+                        GetExtrasTextureStandalone(Palette);
+                    }
+                }
+                return _Texture;
+            }
+
+            public void GetBaseTextureStandalone(PAL Palette) {
+                var beginX = -Bounds.X;
+                var beginY = -Bounds.Y;
 
                 for (var y = 0; y < TileHeight; ++y) {
                     for (var x = 0; x < TileWidth; ++x) {
@@ -164,87 +163,36 @@ namespace CCClasses.FileFormats.Binary {
                             if (ixClr != 0) {
                                 var clr = Palette.Colors[ixClr];
 
-                                var z = CellLevel * 30;
-                                if (HasZData) {
-                                    z += ZData[ixPix];
-                                }
+                                var z = (HasZData)
+                                    ? ZData[ixPix]
+                                    : 0
+                                ;
 
-                                tex.PutPixel(clr, beginX + x, beginY + y, z);
+                                _Texture.PutPixel(clr, beginX + x, beginY + y, z);
                             }
                         }
                     }
                 }
             }
 
-            /// <summary>
-            /// Draws the extra data of this subtile at a given position in the texture
-            /// </summary>
-            /// <param name="data"></param>
-            /// <param name="Palette"></param>
-            /// <param name="TextureBounds"></param>
-            /// <param name="TopLeft"></param>
-            public void GetExtrasTextureStandalone(Helpers.ZBufferedTexture tex, PAL Palette, CellStruct TopLeft, int CellLevel) {
-                var beginX = TopLeft.X + (ExtraX - X);
-                var beginY = TopLeft.Y + (ExtraY - Y);
+            public void GetExtrasTextureStandalone(PAL Palette) {
+                var beginX = ExtraX - X - Bounds.X;
+                var beginY = ExtraY - Y - Bounds.Y;
 
                 for (var y = 0; y < ExtraHeight; ++y) {
                     for (var x = 0; x < ExtraWidth; ++x) {
-                            var ixPix = y * ExtraWidth + x;
-                            var ixClr = Extras[ixPix];
-                            if (ixClr != 0) {
-                                var clr = Palette.Colors[ixClr];
+                        var ixPix = y * ExtraWidth + x;
+                        var ixClr = Extras[ixPix];
+                        if (ixClr != 0) {
+                            var clr = Palette.Colors[ixClr];
 
-                                var z = CellLevel * 30;
-                                if (HasZData) {
-                                    z += ExtraZData[ixPix];
-                                }
+                            var z = (HasZData)
+                                ? ExtraZData[ixPix]
+                                : 0
+                            ;
 
-                                tex.PutPixel(clr, beginX + x, beginY + y, z);
-                            }
-                    }
-                }
-            }
-
-
-            /// <summary>
-            /// Draws this subtile into a texture that was specifically allocated for this tile only - not very useful overall, just for testing single combined tile drawing
-            /// </summary>
-            /// <param name="data"></param>
-            /// <param name="Palette"></param>
-            /// <param name="TextureBounds"></param>
-            /// <param name="MaxHeight"></param>
-            public void GetCombinedTextureInTile(ref Color[] data, PAL Palette, Rectangle TextureBounds, int MaxHeight) {
-                //                var data = new Color[Width * Height];
-
-                var H = MaxHeight - Height;
-                var ixC = ((Y - TextureBounds.Y + (H * TileHeight / 2)) * TextureBounds.Width) + (X - TextureBounds.X);
-                for (var y = 0; y < TileHeight; ++y) {
-                    for (var x = 0; x < TileWidth; ++x) {
-                        var ixPix = IndexOfPixel(x, y);
-                        if (ixPix != -1) {
-                            var ix = Graphics[ixPix];
-                            if (ix == 0) {
-                                data[ixC + x] = PAL.TranslucentColor;
-                            } else {
-                                data[ixC + x] = Palette.Colors[ix];
-                            }
+                            _Texture.PutPixel(clr, beginX + x, beginY + y, z);
                         }
-                    }
-                    ixC += (TextureBounds.Width);
-                }
-
-                if (HasExtraData) {
-                    ixC = ((ExtraY - TextureBounds.Y + (H * TileHeight / 2)) * TextureBounds.Width) + (ExtraX - TextureBounds.X);
-                    var ixPix = 0;
-                    for (var y = 0; y < ExtraHeight; ++y) {
-                        for (var x = 0; x < ExtraWidth; ++x) {
-                            var ix = Extras[ixPix];
-                            if (ix != 0) {
-                                data[ixC + x] = Palette.Colors[ix];
-                            }
-                            ++ixPix;
-                        }
-                        ixC += TextureBounds.Width;
                     }
                 }
             }
@@ -286,6 +234,15 @@ namespace CCClasses.FileFormats.Binary {
                 }
 
                 return -1;
+            }
+
+            internal void Highlight(Helpers.ZBufferedTexture tex, CellStruct TopLeft) {
+                for (var y = 0; y < TileHeight; ++y) {
+                    var l = FirstPixelInRow(y);
+                    var r = TileWidth - l;
+                    tex.PutPixel(Color.Red, TopLeft.X + l, TopLeft.Y + y, Int32.MaxValue);
+                    tex.PutPixel(Color.Red, TopLeft.X + r, TopLeft.Y + y, Int32.MaxValue);
+                }
             }
         };
 
@@ -424,26 +381,6 @@ namespace CCClasses.FileFormats.Binary {
             }
 
             return new Rectangle(x, y, w, h);
-        }
-
-        public Texture2D GetTexture(GraphicsDevice gd, PAL Palette) {
-            var bounds = GetBounds();
-
-            var t = new Texture2D(gd, bounds.Width, bounds.Height, false, SurfaceFormat.Color);
-
-            var data = new Color[bounds.Width * bounds.Height];
-
-            for (var i = 0; i < data.Length; ++i) {
-                data[i] = PAL.TranslucentColor;
-            }
-
-            foreach (var T in TilesReal) {
-                T.GetCombinedTextureInTile(ref data, Palette, bounds, MaxHeight);
-            }
-
-            t.SetData(data);
-
-            return t;
         }
 
     }

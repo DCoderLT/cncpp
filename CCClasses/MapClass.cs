@@ -212,6 +212,7 @@ namespace CCClasses {
         }
 
         Helpers.ZBufferedTexture TileTexture;
+        protected Rectangle LastScreenArea = new Rectangle();
 
         public Texture2D GetTexture(GraphicsDevice gd) {
             var Tactical = TacticalClass.Instance;
@@ -220,23 +221,32 @@ namespace CCClasses {
 
             //var TileTexture = new Color[Tactical.Width * Tactical.Height];
 
-            TileTexture = new Helpers.ZBufferedTexture(gd, Tactical.Width, Tactical.Height);
+            var Reusable = Rectangle.Intersect(LastScreenArea, Tactical.ScreenArea);
 
-            cellIter.Reset();
-            for (var c = cellIter.NextCell(); c != null; c = cellIter.NextCell()) {
+            var shiftX = LastScreenArea.X - Tactical.ScreenArea.X;
+            var shiftY = LastScreenArea.Y - Tactical.ScreenArea.Y;
+
+            var LastTextureData = TileTexture;
+
+            TileTexture = new Helpers.ZBufferedTexture(Tactical.Width, Tactical.Height);
+
+            if (LastTextureData != null) {
+                //TileTexture.CopyBlockFrom(LastTextureData, shiftX, shiftY);
+            }
+
+            foreach(var c in cellIter.Range()) {
                 Tactical.UpdateCellPosition(c);
             }
 
-            var visibleCells = Cells.Where(c => c != null && c.VisibleInTactical);//.OrderBy(c => c.Y * Tactical.Width + c.X);
-
-            //var TextureSize = new Rectangle(0, 0, Tactical.Width, Tactical.Height);
+            var visibleCells = from cell in cellIter.Range() where cell.VisibleInTactical select cell;// Cells.Where(c => c != null && c.VisibleInTactical);//.OrderBy(c => c.Y * Tactical.Width + c.X);
 
             foreach (var c in visibleCells) {
-                c.DrawBase(TileTexture);
-                c.DrawExtra(TileTexture);
+                c.Draw(TileTexture);
             }
 
-            return TileTexture.Compile();
+            LastScreenArea = Tactical.ScreenArea;
+
+            return TileTexture.Compile(gd);
         }
     }
 }
