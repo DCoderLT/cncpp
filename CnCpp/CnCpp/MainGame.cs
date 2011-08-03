@@ -379,7 +379,7 @@ namespace CnCpp {
 
                     bool MapMoved = false;
 
-                    var deltaX = 15;
+                    var deltaX = 7;
                     var deltaY = 7;
 
                     if (combinedState.HasFlag(combinedKeyState.vUp)) {
