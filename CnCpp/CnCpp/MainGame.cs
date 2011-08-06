@@ -761,6 +761,8 @@ namespace CnCpp {
 
             IsoTileTypeClass.LoadListFromINI(Map.TheaterData, true);
 
+            IsoTileTypeClass.PrepaintTiles();
+
             CCFactory<OverlayTypeClass, OverlayClass>.Get().ReadAllFromINI(INI.Rules_Combined);
 
             Map.SetupOverlays();

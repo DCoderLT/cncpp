@@ -140,13 +140,18 @@ namespace CCClasses.FileFormats.Binary {
                 }
             }
 
+            public Helpers.ZBufferedTexture PrepareTexture(PAL Palette) {
+                _Texture = new Helpers.ZBufferedTexture(Bounds.Width, Bounds.Height);
+                GetBaseTextureStandalone(Palette);
+                if (HasExtraData) {
+                    GetExtrasTextureStandalone(Palette);
+                }
+                return _Texture;
+            }
+
             public Helpers.ZBufferedTexture GetTextureStandalone(PAL Palette) {
                 if (_Texture == null) {
-                    _Texture = new Helpers.ZBufferedTexture(Bounds.Width, Bounds.Height);
-                    GetBaseTextureStandalone(Palette);
-                    if (HasExtraData) {
-                        GetExtrasTextureStandalone(Palette);
-                    }
+                    PrepareTexture(Palette);
                 }
                 return _Texture;
             }

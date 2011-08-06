@@ -243,5 +243,15 @@ namespace CCClasses {
 
             return clipped;
         }
+
+        public static void PrepaintTiles() {
+            foreach (var t in All) {
+                if (t != null) {
+                    foreach (var c in t.Tile.TilesReal) {
+                        c.PrepareTexture(isoPAL);
+                    }
+                }
+            }
+        }
     }
 }

@@ -6,6 +6,7 @@ using System.IO;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Graphics.PackedVector;
 using Microsoft.Xna.Framework;
+using System.Diagnostics;
 
 namespace CCClasses.FileFormats.Binary {
     public class SHP : BinaryFileFormat {
@@ -90,7 +91,8 @@ namespace CCClasses.FileFormats.Binary {
                         }
                     }
                     ProcessedBytes = decoded.ToArray();
-                } catch (ArgumentOutOfRangeException) {
+                } catch (ArgumentOutOfRangeException Ex) {
+                    Debug.WriteLine("Caught an Out of Range exception: {0}...", Ex.Message);
                     return false;
                 }
                 return true;
