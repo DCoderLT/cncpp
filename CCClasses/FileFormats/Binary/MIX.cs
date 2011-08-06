@@ -50,7 +50,6 @@ namespace CCClasses.FileFormats.Binary {
 
         public uint HeadLength = 0;
         byte[] headerBytes;
-        byte[] fileBytes;
 
         public uint FileLength;
 
@@ -66,6 +65,8 @@ namespace CCClasses.FileFormats.Binary {
             }
         }
 
+        protected BinaryReader source;
+
         public MIX(CCFileClass ccFile = null)
             : base(ccFile) {
         }
@@ -78,6 +79,7 @@ namespace CCClasses.FileFormats.Binary {
         }
 
         protected override bool ReadFile(BinaryReader r) {
+            source = r;
             var length = (int)r.BaseStream.Length;
             this.FileLength = (uint)length;
 
@@ -86,7 +88,7 @@ namespace CCClasses.FileFormats.Binary {
                 return false;
             }
 
-            fileBytes = r.ReadBytes((int)length);
+            var fileBytes = r.ReadBytes((int)length);
 
             UInt32 flags = BitConverter.ToUInt32(fileBytes, 0);
             if ((flags & 0x0000FFFF) != 0) {
@@ -248,7 +250,10 @@ namespace CCClasses.FileFormats.Binary {
                 int pos = (int)(BodyStart + e.Offset);
                 int len = (int)e.Length;
 
-                return new MemoryStream(fileBytes, pos, len, false, false);
+
+                source.BaseStream.Seek(pos, SeekOrigin.Begin);
+                var contents = source.ReadBytes(len);
+                return new MemoryStream(contents, 0, len, false, false);
             }
             return null;
         }

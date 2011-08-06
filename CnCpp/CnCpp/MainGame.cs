@@ -397,31 +397,26 @@ namespace CnCpp {
             } else {
                 if (Map != null) {
 
-                    bool MapMoved = false;
-
                     var deltaX = 7;
                     var deltaY = 7;
 
+                    TacticalClass.NudgeStatus moveStatus = TacticalClass.NudgeStatus.E_EDGE;
+
                     if (combinedState.HasFlag(combinedKeyState.vUp)) {
-                        Tactical.NudgeY(-deltaY);
-                        MapMoved = true;
+                        moveStatus = Tactical.NudgeY(-deltaY);
                     } else if (combinedState.HasFlag(combinedKeyState.vDown)) {
-                        Tactical.NudgeY(+deltaY);
-                        MapMoved = true;
+                        moveStatus = Tactical.NudgeY(+deltaY);
                     }
 
                     if (combinedState.HasFlag(combinedKeyState.vLeft)) {
-                        Tactical.NudgeX(-deltaX);
-                        MapMoved = true;
+                        moveStatus = Tactical.NudgeX(-deltaX);
                     } else if (combinedState.HasFlag(combinedKeyState.vRight)) {
-                        Tactical.NudgeX(+deltaX);
-                        MapMoved = true;
+                        moveStatus = Tactical.NudgeX(+deltaX);
                     }
 
+                    bool MapMoved = moveStatus != TacticalClass.NudgeStatus.E_EDGE;
+
                     if (MapTexture == null || MapMoved) {
-                        if (MapTexture != null) {
-                            MapTexture.Dispose();
-                        }
                         MapTexture = Map.GetTexture(GraphicsDevice);
                     }
 

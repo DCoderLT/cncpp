@@ -252,13 +252,15 @@ namespace CCClasses {
             var shiftX = LastScreenArea.X - Tactical.ScreenArea.X;
             var shiftY = LastScreenArea.Y - Tactical.ScreenArea.Y;
 
-            var LastTextureData = TileTexture;
-
-            TileTexture = new Helpers.ZBufferedTexture(Tactical.Width, Tactical.Height);
-
-            if (LastTextureData != null) {
-                //TileTexture.CopyBlockFrom(LastTextureData, shiftX, shiftY);
+            if (TileTexture == null) {
+                TileTexture = new Helpers.ZBufferedTexture(Tactical.Width, Tactical.Height);
+            } else {
+                TileTexture.Clear();
             }
+
+            //if (LastTextureData != null) {
+            //    //TileTexture.CopyBlockFrom(LastTextureData, shiftX, shiftY);
+            //}
 
             VisibleCells.Clear();
 

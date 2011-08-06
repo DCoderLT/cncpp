@@ -68,30 +68,42 @@ namespace CCClasses {
             throw new InvalidOperationException("Tactical Class already initialized.");
         }
 
-        public bool NudgeX(int amount = 60) {
+        public enum NudgeStatus {
+            S_OK = 1,
+            E_CLAMPED = 2,
+            E_EDGE = 3
+        };
+
+        public NudgeStatus NudgeX(int amount = 60) {
+            if (amount > 0 ? ScreenArea.Right >= VisibleMap.Right : ScreenArea.Left <= VisibleMap.Left) {
+                return NudgeStatus.E_EDGE;
+            }
             ScreenArea.X += amount;
             if (ScreenArea.Right > VisibleMap.Right) {
                 ScreenArea.X = VisibleMap.Right - ScreenArea.Width;
-                return false;
+                return NudgeStatus.E_CLAMPED;
             }
             if (ScreenArea.Left < VisibleMap.Left) {
                 ScreenArea.X = VisibleMap.Left;
-                return false;
+                return NudgeStatus.E_CLAMPED;
             }
-            return true;
+            return NudgeStatus.S_OK;
         }
 
-        public bool NudgeY(int amount = 30) {
+        public NudgeStatus NudgeY(int amount = 30) {
+            if (amount > 0 ? ScreenArea.Bottom >= VisibleMap.Bottom : ScreenArea.Top <= VisibleMap.Top) {
+                return NudgeStatus.E_EDGE;
+            }
             ScreenArea.Y += amount;
             if (ScreenArea.Top < VisibleMap.Top) {
                 ScreenArea.Y = VisibleMap.Top;
-                return false;
+                return NudgeStatus.E_CLAMPED;
             }
             if (ScreenArea.Bottom > VisibleMap.Bottom) {
                 ScreenArea.Y = VisibleMap.Bottom - ScreenArea.Height;
-                return false;
+                return NudgeStatus.E_CLAMPED;
             }
-            return true;
+            return NudgeStatus.S_OK;
         }
 
         public int Adjust2DYTo3DZ(int Y) {
