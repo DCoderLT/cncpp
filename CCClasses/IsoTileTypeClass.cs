@@ -111,7 +111,11 @@ namespace CCClasses {
 
         public static List<IsoTileTypeClass> All = new List<IsoTileTypeClass>();
 
-        public static PAL isoPAL;
+        public static PAL isoPAL {
+            get {
+                return MapTheater.isoPAL;
+            }
+        }
 
         internal static String GetSuffix(int idx) {
             if (idx == 0) {
@@ -120,113 +124,106 @@ namespace CCClasses {
             return "" + (char)(0x60 + idx);
         }
 
-        public static void LoadListFromINI(Theater TheaterData, bool arg) {
-            String PalName = String.Format("ISO{0}.PAL", TheaterData.Extension);
+        internal static void TheaterChanged() {
+            All.Clear();
+        }
 
-            using (var PalStream = FileSystem.LoadFile(PalName)) {
-                if (PalStream != null) {
-                    isoPAL = new PAL(PalStream);
-                } else {
-                    isoPAL = null;
-                }
-            }
+        public static void LoadListFromINI(MapTheater TheaterData, bool arg) {
 
             String IniName = String.Format("{0}MD.INI", TheaterData.mixName);
 
-            using (var INIStream = FileSystem.LoadFile(IniName)) {
-                var isoINI = new INI(INIStream);
+            var INIStream = FileSystem.LoadFile(IniName);
+            var isoINI = new INI(INIStream);
 
-                int negative = -1;
+            int negative = -1;
+
+            foreach (var lookup in TilesetIndices) {
+                isoINI.GetInteger("General", lookup.Value.Name, out lookup.Value.TilesetIndex, negative);
+            }
+
+            int tsetIdx = 0;
+            while (true) {
+                String TilesetSection = String.Format("TileSet{0:d4}", tsetIdx);
+                if (!isoINI.SectionExists(TilesetSection)) {
+                    break;
+                }
+                var tsCfg = new TilesetConfig() {
+                    TilesInSet = -1
+                };
+                isoINI.GetInteger(TilesetSection, "TilesInSet", out tsCfg.TilesInSet, negative);
+                if (tsCfg.TilesInSet == -1) {
+                    break;
+                }
 
                 foreach (var lookup in TilesetIndices) {
-                    isoINI.GetInteger("General", lookup.Value.Name, out lookup.Value.TilesetIndex, negative);
+                    if (tsetIdx == lookup.Value.TilesetIndex) {
+                        lookup.Value.TileIndex = All.Count;
+                    }
                 }
 
-                int tsetIdx = 0;
-                while (true) {
-                    String TilesetSection = String.Format("TileSet{0:d4}", tsetIdx);
-                    if (!isoINI.SectionExists(TilesetSection)) {
-                        break;
-                    }
-                    var tsCfg = new TilesetConfig() {
-                        TilesInSet = -1
-                    };
-                    isoINI.GetInteger(TilesetSection, "TilesInSet", out tsCfg.TilesInSet, negative);
-                    if (tsCfg.TilesInSet == -1) {
-                        break;
-                    }
+                ++tsetIdx;
 
-                    foreach (var lookup in TilesetIndices) {
-                        if (tsetIdx == lookup.Value.TilesetIndex) {
-                            lookup.Value.TileIndex = All.Count;
-                        }
-                    }
+                isoINI.GetString(TilesetSection, "SetName", out tsCfg.SetName, "No Name");
+                isoINI.GetString(TilesetSection, "FileName", out tsCfg.FileName, "TILE");
+                isoINI.GetInteger(TilesetSection, "MarbleMadness", out tsCfg.MarbleMadness, 65535);
+                isoINI.GetInteger(TilesetSection, "NonMarbleMadness", out tsCfg.NonMarbleMadness, 65535);
+                isoINI.GetBool(TilesetSection, "Morphable", out tsCfg.Morphable, false);
+                isoINI.GetBool(TilesetSection, "AllowToPlace", out tsCfg.AllowToPlace, true);
+                isoINI.GetBool(TilesetSection, "AllowBurrowing", out tsCfg.AllowBurrowing, true);
+                isoINI.GetBool(TilesetSection, "AllowTiberium", out tsCfg.AllowTiberium, false);
+                isoINI.GetBool(TilesetSection, "RequiredForRMG", out tsCfg.RequiredForRMG, false);
+                isoINI.GetInteger(TilesetSection, "ToSnowTheater", out tsCfg.ToSnowTheater, -1);
+                isoINI.GetInteger(TilesetSection, "ToTemperateTheater", out tsCfg.ToTemperateTheater, -1);
+                isoINI.GetBool(TilesetSection, "ShadowCaster", out tsCfg.ShadowCaster, false);
+                if (tsCfg.ShadowCaster) {
+                    isoINI.GetInteger(TilesetSection, "ShadowTiles", out tsCfg.ShadowTiles, 0);
+                }
 
-                    ++tsetIdx;
+                for (var i = 1; i <= tsCfg.TilesInSet; ++i) {
+                    var TileFnameBase = String.Format("{0:s}{1:d2}", tsCfg.FileName, i);
 
-                    isoINI.GetString(TilesetSection, "SetName", out tsCfg.SetName, "No Name");
-                    isoINI.GetString(TilesetSection, "FileName", out tsCfg.FileName, "TILE");
-                    isoINI.GetInteger(TilesetSection, "MarbleMadness", out tsCfg.MarbleMadness, 65535);
-                    isoINI.GetInteger(TilesetSection, "NonMarbleMadness", out tsCfg.NonMarbleMadness, 65535);
-                    isoINI.GetBool(TilesetSection, "Morphable", out tsCfg.Morphable, false);
-                    isoINI.GetBool(TilesetSection, "AllowToPlace", out tsCfg.AllowToPlace, true);
-                    isoINI.GetBool(TilesetSection, "AllowBurrowing", out tsCfg.AllowBurrowing, true);
-                    isoINI.GetBool(TilesetSection, "AllowTiberium", out tsCfg.AllowTiberium, false);
-                    isoINI.GetBool(TilesetSection, "RequiredForRMG", out tsCfg.RequiredForRMG, false);
-                    isoINI.GetInteger(TilesetSection, "ToSnowTheater", out tsCfg.ToSnowTheater, -1);
-                    isoINI.GetInteger(TilesetSection, "ToTemperateTheater", out tsCfg.ToTemperateTheater, -1);
-                    isoINI.GetBool(TilesetSection, "ShadowCaster", out tsCfg.ShadowCaster, false);
-                    if (tsCfg.ShadowCaster) {
-                        isoINI.GetInteger(TilesetSection, "ShadowTiles", out tsCfg.ShadowTiles, 0);
-                    }
-
-                    for (var i = 1; i <= tsCfg.TilesInSet; ++i) {
-                        var TileFnameBase = String.Format("{0:s}{1:d2}", tsCfg.FileName, i);
-
-                        var variation = 0;
-                        var exists = false;
-                        IsoTileTypeClass curTile = null;
-                        do {
-                            var TileFname = String.Format("{0:s}{1:s}.{2:s}", TileFnameBase, GetSuffix(variation), TheaterData.Extension);
-                            ++variation;
-                            using (var tileFile = FileSystem.LoadFile(TileFname)) {
-                                if (tileFile == null) {
-                                    exists = false;
+                    var variation = 0;
+                    var exists = false;
+                    IsoTileTypeClass curTile = null;
+                    do {
+                        var TileFname = String.Format("{0:s}{1:s}.{2:s}", TileFnameBase, GetSuffix(variation), TheaterData.Extension);
+                        ++variation;
+                        var tileFile = FileSystem.LoadFile(TileFname);
+                        if (tileFile == null) {
+                            exists = false;
+                        } else {
+                            var tileVariation = new IsoTileTypeClass() {
+                                cfg = tsCfg,
+                                IndexInTileset = i,
+                                AllowBurrowing = tsCfg.AllowBurrowing,
+                                AllowTiberium = tsCfg.AllowTiberium,
+                                AllowToPlace = tsCfg.AllowToPlace,
+                                Morphable = tsCfg.Morphable,
+                                RequiredForRMG = tsCfg.RequiredForRMG,
+                                ToSnowTheater = tsCfg.ToSnowTheater,
+                                ToTemperateTheater = tsCfg.ToTemperateTheater,
+                            };
+                            try {
+                                var tmpVariation = new TMP(tileFile);
+                                tileVariation.Tile = tmpVariation;
+                                if (curTile == null) {
+                                    curTile = tileVariation;
                                 } else {
-                                    var tileVariation = new IsoTileTypeClass() {
-                                        cfg = tsCfg,
-                                        IndexInTileset = i,
-                                        AllowBurrowing = tsCfg.AllowBurrowing,
-                                        AllowTiberium = tsCfg.AllowTiberium,
-                                        AllowToPlace = tsCfg.AllowToPlace,
-                                        Morphable = tsCfg.Morphable,
-                                        RequiredForRMG = tsCfg.RequiredForRMG,
-                                        ToSnowTheater = tsCfg.ToSnowTheater,
-                                        ToTemperateTheater = tsCfg.ToTemperateTheater,
-                                    };
-                                    try {
-                                        var tmpVariation = new TMP(tileFile);
-                                        tileVariation.Tile = tmpVariation;
-                                        if (curTile == null) {
-                                            curTile = tileVariation;
-                                        } else {
-                                            curTile.NextVariation = tileVariation;
-                                        }
-                                        exists = true;
-                                    } catch (ArgumentException) {
-                                        // bleh, broken file
-                                    }
+                                    curTile.NextVariation = tileVariation;
                                 }
+                                exists = true;
+                            } catch (ArgumentException) {
+                                // bleh, broken file
                             }
-                            if (curTile == null) {
-                                Debug.WriteLine("Failed to load tile {0}{1}", TileFname, ".");
-                            }
-                        } while (exists);
+                        }
+                        if (curTile == null) {
+                            Debug.WriteLine("Failed to load tile {0}{1}", TileFname, ".");
+                        }
+                    } while (exists);
 
-                        All.Add(curTile);
-                    }
-
+                    All.Add(curTile);
                 }
+
             }
 
         }

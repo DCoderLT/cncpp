@@ -30,6 +30,13 @@ namespace CCClasses.Helpers {
             ZIndices = new int[Width * Height];
         }
 
+        ~ZBufferedTexture() {
+            if (_Texture != null) {
+                _Texture.Dispose();
+                _Texture = null;
+            }
+        }
+
         internal PixelPlacementStatus PutPixel(Color clr, int X, int Y, int Z) {
 
             if (X < 0 || X >= Width) {
@@ -54,6 +61,14 @@ namespace CCClasses.Helpers {
             return PixelPlacementStatus.S_OK;
         }
 
+        public void Clear() {
+            for (var i = 0; i < Width * Height; ++i) {
+                Pixels[i] = DummyColor;
+                ZIndices[i] = 0;
+            }
+            Compiled = false;
+        }
+
         private bool Compiled = false;
 
         public Texture2D Compile(GraphicsDevice gd) {
@@ -67,6 +82,10 @@ namespace CCClasses.Helpers {
             Compiled = true;
 
             return _Texture;
+        }
+
+        public void ApplyTo(Texture2D tex) {
+            tex.SetData(Pixels);
         }
 
         internal bool CopyBlockFrom(ZBufferedTexture tex, int shiftX, int shiftY, int shiftZ = 0, bool CopyTransparent = true) {

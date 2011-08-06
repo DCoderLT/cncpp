@@ -9,18 +9,18 @@ namespace CCClasses.FileFormats.Binary {
 
         public class FileHeader {
             public static readonly List<String> Languages = new List<string>() {
-            "US (English)",
-            "UK (English)",
-            "German",
-            "French",
-            "Spanish",
-            "Italian",
-            "Japanese",
-            "Jabberwockie",
-            "Korean",
-            "Chinese",
-            "Unknown",
-        };
+                "US (English)",
+                "UK (English)",
+                "German",
+                "French",
+                "Spanish",
+                "Italian",
+                "Japanese",
+                "Jabberwockie",
+                "Korean",
+                "Chinese",
+                "Unknown",
+            };
 
             public const int ByteSize = 24;
             public int Version;
@@ -170,6 +170,8 @@ namespace CCClasses.FileFormats.Binary {
             }
         };
 
+        public static CSF StringTable = new CSF();
+
         public CSF(CCFileClass ccFile = null) : base(ccFile) {
         }
 
@@ -204,6 +206,13 @@ namespace CCClasses.FileFormats.Binary {
             }
 
             return true;
+        }
+
+        public String GetValue(String ID) {
+            if (!Labels.ContainsKey(ID)) {
+                return "MISSING:" + ID;
+            }
+            return Labels[ID].Val;
         }
     }
 }

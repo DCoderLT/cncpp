@@ -123,24 +123,59 @@ namespace CCClasses {
             _Contents = contents;
         }
 
+        private StreamReader _sreader;
+        private BinaryReader _breader;
+
         public StreamReader TextStream {
             get {
-                return new StreamReader(_Contents);
+                if (_sreader == null) {
+                    _sreader = new StreamReader(_Contents);
+                }
+                return _sreader;
             }
         }
 
         public BinaryReader BinaryStream {
             get {
-                return new BinaryReader(_Contents);
+                if (_breader == null) {
+                    _breader = new BinaryReader(_Contents);
+                }
+                return _breader;
             }
         }
 
         public void Dispose() {
-            if (_Contents != null) {
-                _Contents.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private bool _disposed = false;
+        protected virtual void Dispose(bool disposing) {
+            if (!_disposed) {
+                if (disposing) {
+                    var disposedStream = false;
+                    if (_sreader != null) {
+                        _sreader.Dispose();
+                        disposedStream = true;
+                    }
+                    if (_breader != null) {
+                        _breader.Dispose();
+                        disposedStream = true;
+                    }
+
+                    if (_Contents != null && !disposedStream) {
+                        _Contents.Dispose();
+                    }
+                 }
+                _sreader = null;
+                _breader = null;
                 _Contents = null;
+                _disposed = true;
             }
         }
 
+        ~CCFileClass() {
+            Dispose(false);
+        }
     }
 }

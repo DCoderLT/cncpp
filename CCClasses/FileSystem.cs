@@ -46,10 +46,30 @@ namespace CCClasses {
             var ccF = LoadFile(filename);
             if (ccF != null) {
                 var MX = new MIX(ccF);
-                MIX.LoadedMIXes.Insert(0, MX);
+                MIX.LoadedMIXes.Add(MX);
                 return MX;
             }
             return null;
         }
+
+        public static void UnloadFile(String filename) {
+            if (LoadedFiles.ContainsKey(filename)) {
+                LoadedFiles[filename].Dispose();
+                LoadedFiles.Remove(filename);
+            }
+        }
+
+        public static void UnloadMIX(String filename) {
+            var mix = MIX.LoadedMIXes.FindIndex(m => m.Filename.Equals(filename));
+            if (mix != -1) {
+                MIX.LoadedMIXes.RemoveAt(mix);
+            }
+            UnloadFile(filename);
+        }
+
+        public static void UnloadMIX(MIX mix) {
+            MIX.LoadedMIXes.Remove(mix);
+        }
+
     }
 }

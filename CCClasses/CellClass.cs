@@ -40,7 +40,11 @@ namespace CCClasses {
             Y = y;
             Z = z;
         }
-}
+
+        public CellStruct ToCell() {
+            return new CellStruct(X >> 8, Y >> 8);
+        }
+    }
 
     public class CellClass {
         public int X, Y;
@@ -170,6 +174,37 @@ namespace CCClasses {
                     return TileTMP.Bounds;
                 }
                 return new Rectangle(0, 0, 0, 0);
+            }
+        }
+
+        public Helpers.WeakRef<AbstractHierarchy.ObjectClass> FirstObject = new Helpers.WeakRef<AbstractHierarchy.ObjectClass>(null);
+
+        public void AddContent(AbstractHierarchy.ObjectClass Content) {
+            if (FirstObject.Value == null) {
+                FirstObject = new Helpers.WeakRef<AbstractHierarchy.ObjectClass>(Content);
+            } else {
+                var LastObject = FirstObject.Value; 
+                while(LastObject != null && LastObject.NextObject.Value != null) {
+                    LastObject = LastObject.NextObject.Value;
+                }
+                LastObject.NextObject = new Helpers.WeakRef<AbstractHierarchy.ObjectClass>(Content);
+            }
+        }
+
+        public void RemoveContent(AbstractHierarchy.ObjectClass Content) {
+            if (Content == FirstObject.Value) {
+                FirstObject = new Helpers.WeakRef<AbstractHierarchy.ObjectClass>(FirstObject.Value.NextObject.Value);
+            } else {
+                var o = FirstObject.Value;
+                AbstractHierarchy.ObjectClass prev = null;
+                while (o != null) {
+                    if (o == Content) {
+                        prev.NextObject = new Helpers.WeakRef<AbstractHierarchy.ObjectClass>(o.NextObject.Value);
+                        break;
+                    }
+                    prev = o;
+                    o = o.NextObject.Value;
+                }
             }
         }
     }

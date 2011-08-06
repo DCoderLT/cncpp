@@ -600,10 +600,10 @@ namespace CCClasses.FileFormats {
                     nb.Add(nb[a << 2]);
             }
 
-            Crc32 crc = new Crc32();
-
-            var hash = crc.ComputeHash(nb.ToArray());
-            return BitConverter.ToUInt32(hash.Reverse().ToArray(), 0);
+            using (Crc32 crc = new Crc32()) {
+                var hash = crc.ComputeHash(nb.ToArray());
+                return BitConverter.ToUInt32(hash.Reverse().ToArray(), 0);
+            }
         }
 
         public static String getIDString(String name) {

@@ -11,28 +11,34 @@ namespace CCClasses.FileFormats.Binary {
     public class SHP : BinaryFileFormat {
         public class FileHeader {
             public int zero;
-            public uint Width;
-            public uint Height;
-            public uint FrameCount;
+            public int Width;
+            public int Height;
+            public int FrameCount;
 
             public bool Read(ArraySegment<byte> input) {
                 var data = input.Array;
                 var ofs = input.Offset;
                 zero = BitConverter.ToInt16(data, ofs + 0);
-                Width = BitConverter.ToUInt16(data, ofs + 2);
-                Height = BitConverter.ToUInt16(data, ofs + 4);
-                FrameCount = BitConverter.ToUInt16(data, ofs + 6);
+                Width = BitConverter.ToInt16(data, ofs + 2);
+                Height = BitConverter.ToInt16(data, ofs + 4);
+                FrameCount = BitConverter.ToInt16(data, ofs + 6);
                 return true;
             }
         }
 
         public class FrameHeader {
-            public uint X, Y, Width, Height, Compression, Unknown, Zero, Offset;
+            public int X, Y, Width, Height, Compression, Unknown, Zero, Offset;
             public byte[] ProcessedBytes;
 
-            public uint Length {
+            public int Length {
                 get {
                     return Width * Height;
+                }
+            }
+
+            public Rectangle Bounds {
+                get {
+                    return new Rectangle(X, Y, Width, Height);
                 }
             }
 
@@ -43,10 +49,10 @@ namespace CCClasses.FileFormats.Binary {
                 Y = BitConverter.ToUInt16(data, ofs + 2);
                 Width = BitConverter.ToUInt16(data, ofs + 4);
                 Height = BitConverter.ToUInt16(data, ofs + 6);
-                Compression = BitConverter.ToUInt32(data, ofs + 8);
-                Unknown = BitConverter.ToUInt32(data, ofs + 12);
-                Zero = BitConverter.ToUInt32(data, ofs + 16);
-                Offset = BitConverter.ToUInt32(data, ofs + 20);
+                Compression = BitConverter.ToInt32(data, ofs + 8);
+                Unknown = BitConverter.ToInt32(data, ofs + 12);
+                Zero = BitConverter.ToInt32(data, ofs + 16);
+                Offset = BitConverter.ToInt32(data, ofs + 20);
                 return true;
             }
 
@@ -95,14 +101,37 @@ namespace CCClasses.FileFormats.Binary {
         public List<FrameHeader> FrameHeaders = new List<FrameHeader>();
         public PAL Palette;
 
-        public SHP(CCFileClass ccFile = null) : base(ccFile) {
+        protected static Dictionary<String, SHP> LoadedFiles = new Dictionary<string, SHP>();
+
+        public static SHP LoadFile(String filename) {
+            if (LoadedFiles.ContainsKey(filename)) {
+                return LoadedFiles[filename];
+            }
+            var shp = FileSystem.LoadFile(filename);
+            if (shp != null) {
+                LoadedFiles[filename] = new SHP(shp);
+                return LoadedFiles[filename];
+            }
+            return null;
         }
 
-        public uint FrameCount {
+        public SHP(CCFileClass ccFile = null)
+            : base(ccFile) {
+        }
+
+        public int FrameCount {
             get {
                 return Header.FrameCount;
             }
         }
+
+        public Rectangle Bounds {
+            get {
+                return new Rectangle(0, 0, Header.Width, Header.Height);
+            }
+        }
+
+        protected Helpers.ZBufferedTexture tex;
 
         protected override bool ReadFile(BinaryReader r) {
             var length = (int)r.BaseStream.Length;
@@ -117,11 +146,11 @@ namespace CCClasses.FileFormats.Binary {
             if (!Header.Read(head)) {
                 throw new InvalidDataException("File does not contain a valid header", null);
             }
-            if(bytes.Length < (8 + (Header.FrameCount * 24))) {
+            if (bytes.Length < (8 + (Header.FrameCount * 24))) {
                 throw new InvalidDataException("File is too short to contain enough frame headers", null);
             }
 
-            for(var i = 0; i < Header.FrameCount; ++i) {
+            for (var i = 0; i < Header.FrameCount; ++i) {
                 var seg = new ArraySegment<byte>(bytes, 8 + (i * 24), 24);
                 var fh = new FrameHeader();
                 if (fh.Read(seg)) {
@@ -149,7 +178,7 @@ namespace CCClasses.FileFormats.Binary {
             Palette = NewPalette;
         }
 
-        public Texture2D GetTexture(uint FrameIndex, GraphicsDevice gd) {
+        public void GetTexture(uint FrameIndex, ref Helpers.ZBufferedTexture resultTexture) {
             if (Palette == null) {
                 throw new InvalidOperationException("Cannot create texture without a palette.");
             }
@@ -161,28 +190,60 @@ namespace CCClasses.FileFormats.Binary {
             var fw = (int)frame.Width;
             var fh = (int)frame.Height;
 
-            var t = new Texture2D(gd, fw, fh, false, SurfaceFormat.Color);
-
             int hw = fw * fh;
 
             if (hw != frame.ProcessedBytes.Length) {
                 throw new InvalidDataException("Frame does not decompress to the right amount of bytes");
             }
 
-            var data = new Color[hw];
+            if (resultTexture == null) {
+                resultTexture = new Helpers.ZBufferedTexture((int)frame.X + fw, (int)frame.Y + fh);
+            } else {
+                resultTexture.Clear();
+            }
 
-            for (var i = 0; i < hw; ++i) {
-                var ix = frame.ProcessedBytes[i];
-                if(ix == 0) {
-                    data[i] = PAL.TranslucentColor;
-                } else {
-                    data[i] = Palette.Colors[ix];
+            for (var y = 0; y < fh; ++y) {
+                for (var x = 0; x < fw; ++x) {
+                    var ix = frame.ProcessedBytes[y * fw + x];
+                    Color c;
+                    if (ix == 0) {
+                        c = PAL.TranslucentColor;
+                    } else {
+                        c = Palette.Colors[ix];
+                    }
+                    resultTexture.PutPixel(c, (int)frame.X + x, (int)frame.Y + y, 0);
+                }
+            }
+        }
+
+        public void DrawIntoTexture(Helpers.ZBufferedTexture Texture, CellStruct TopLeft, uint FrameIndex, PAL tmpPalette, int zIndex = 0) {
+            if (FrameIndex > FrameHeaders.Count) {
+                throw new InvalidOperationException(String.Format("Frame {0} is not present in this file.", FrameIndex));
+            }
+
+            var frame = FrameHeaders[(int)FrameIndex];
+            var fw = (int)frame.Width;
+            var fh = (int)frame.Height;
+
+            if (fw * fh != frame.ProcessedBytes.Length) {
+                throw new InvalidDataException("Frame does not decompress to the right amount of bytes");
+            }
+
+            var startX = (int)(TopLeft.X - frame.Width / 2);
+            var startY = (int)(TopLeft.Y - frame.Height / 2);
+
+            for (var y = 0; y < fh; ++y) {
+                for (var x = 0; x < fw; ++x) {
+                    var ixPix = y * fw + x;
+                    var ixClr = frame.ProcessedBytes[ixPix];
+                    var clr = PAL.TranslucentColor;
+                    if (ixClr != 0) {
+                        clr = tmpPalette.Colors[ixClr];
+                    }
+                    Texture.PutPixel(clr, startX + x, startY + y, zIndex);
                 }
             }
 
-            t.SetData(data);
-
-            return t;
         }
     }
 }

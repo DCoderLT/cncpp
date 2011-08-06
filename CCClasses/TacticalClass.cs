@@ -94,6 +94,12 @@ namespace CCClasses {
             return true;
         }
 
+        public int Adjust2DYTo3DZ(int Y) {
+            var extra = (Y >= 728) ? 1 : 0;
+
+            return (int)(Y * MQ12 + extra + 0.5);
+        }
+
         public void UpdateCellPosition(CellClass c) {
             if (c != null) {
                 c.PreviouslyVisibleInTactical = c.VisibleInTactical;

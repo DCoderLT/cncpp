@@ -66,6 +66,11 @@ namespace CCClasses.FileFormats.Text {
 
         public Dictionary<String, INISection> Sections = new Dictionary<string, INISection>();
 
+        public static INI Rules_INI;
+        public static INI Rules_Combined;
+        public static INI Art_INI;
+        //public static INI Ai_INI;
+
         public INI(CCFileClass ccFile = null) : base(ccFile) {
         }
         
@@ -126,6 +131,26 @@ namespace CCClasses.FileFormats.Text {
             return true;
         }
 
+        public void CombineWithFile(StreamReader r) {
+            ReadFile(r);
+        }
+
+        public void CombineWithFile(INI otherINI) {
+            foreach (var s in otherINI.Sections) {
+                if(!SectionExists(s.Key)) {
+                    AddSection(s.Key);
+                }
+                var sect = Sections[s.Key];
+                foreach (var e in s.Value.Entries) {
+                    if (!sect.ContainsKey(e.Value.Key)) {
+                        sect.AddKey(e.Value.Key, e.Value.Value);
+                    } else {
+                        sect[e.Value.Key] = e.Value;
+                    }
+                }
+            }
+        }
+
         public bool SectionExists(String Section) {
             return Sections.ContainsKey(Section);
         }
@@ -136,7 +161,6 @@ namespace CCClasses.FileFormats.Text {
             }
             return false;
         }
-
 
         public string ReadSection(string Section) {
             String allContent = "";
@@ -152,6 +176,10 @@ namespace CCClasses.FileFormats.Text {
             return allContent;
         }
 
+        public bool GetString(String Section, String Key, ref String Result) {
+            var Default = Result;
+            return GetString(Section, Key, out Result, Default);
+        }
 
         public bool GetString(String Section, String Key, out String Result, String Default) {
             Result = Default;
@@ -160,6 +188,11 @@ namespace CCClasses.FileFormats.Text {
             }
             Result = Sections[Section][Key].Value;
             return true;
+        }
+
+        public bool GetInteger(String Section, String Key, ref int Result) {
+            var Default = Result;
+            return GetInteger(Section, Key, out Result, Default);
         }
 
         public bool GetInteger(String Section, String Key, out int Result, int Default) {
@@ -195,6 +228,11 @@ namespace CCClasses.FileFormats.Text {
             }
 
             return false;
+        }
+
+        public bool GetBool(String Section, String Key, ref bool Result) {
+            var Default = Result;
+            return GetBool(Section, Key, out Result, Default);
         }
 
         public bool GetBool(String Section, String Key, out bool Result, bool Default) {

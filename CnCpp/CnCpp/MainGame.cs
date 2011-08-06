@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
 using System.IO;
 using CCClasses;
+using CCClasses.AbstractHierarchy;
 using CCClasses.FileFormats;
 using CCClasses.FileFormats.Text;
 using CCClasses.FileFormats.Binary;
@@ -29,38 +30,41 @@ namespace CnCpp {
         private readonly object plock = new object();
         private System.Windows.Forms.Form form;
 
+        private MapClass Map;
+        //private bool MapTextureChangePending;
+        private Texture2D MapTexture;
+        //private TimeSpan TimeSinceMapUpdate;
+
+        //private INI INIFile;
+
         private SHP MouseTextures;
         private PAL MousePalette;
+        private PAL AnimPalette;
 
-        private MapClass Map;
-        private bool MapTextureChangePending;
-        private Texture2D MapTexture;
-        private TimeSpan TimeSinceMapUpdate;
+        private ZBufferedTexture MouseTexture;
 
-        private INI INIFile;
-
-        private Texture2D CurrentMouseTexture;
         private int MouseFrame;
-        private int MouseScroll;
+        private bool MouseFrameChanged;
+        //private int MouseScroll;
         private Vector2 MousePos;
 
-        private List<VoxLib> LoadedVoxels = new List<VoxLib>();
-        private int VoxelFrame;
+        //private List<VoxLib> LoadedVoxels = new List<VoxLib>();
+        //private int VoxelFrame;
 
-        private bool VoxelChanged;
+        //private bool VoxelChanged;
 
-        private VXL.VertexPositionColorNormal[] VoxelContent;
-        private int[] VoxelIndices;
+        //private VXL.VertexPositionColorNormal[] VoxelContent;
+        //private int[] VoxelIndices;
 
-        Matrix worldMatrix;
-        Matrix viewMatrix;
-        Matrix projectionMatrix;
+        //Matrix worldMatrix;
+        //Matrix viewMatrix;
+        //Matrix projectionMatrix;
 
         BasicEffect effect;
-        VertexBuffer vertexBuffer;
-        IndexBuffer indexBuffer;
+        //VertexBuffer vertexBuffer;
+        //IndexBuffer indexBuffer;
 
-        private Texture2D MapPreview;
+        //private Texture2D MapPreview;
 
 
         private int defOX = 0, defOY = 0;
@@ -69,7 +73,7 @@ namespace CnCpp {
         private int offX, offY;
         private Vector3 rotation;
 
-        private float scale = 1f;
+        //private float scale = 1f;
 
         protected enum combinedKeyState {
             vUp = 1,
@@ -87,6 +91,8 @@ namespace CnCpp {
         public MainGame() {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
+            this.IsFixedTimeStep = false;
+
         }
 
         /// <summary>
@@ -108,6 +114,11 @@ namespace CnCpp {
 
             InitializeDragDrop();
 
+            GraphicsDevice.RasterizerState = new RasterizerState() {
+                FillMode = FillMode.Solid,
+                CullMode = CullMode.None
+            };
+
             graphics.PreferredBackBufferWidth = 800;
             graphics.PreferredBackBufferHeight = 600;
             graphics.IsFullScreen = false;
@@ -125,11 +136,17 @@ namespace CnCpp {
 
                 //                RunTests();
 
+                InitDrawing();
+
                 LoadGameFiles();
 
                 InitTacticalView();
 
             }
+        }
+
+        private void InitDrawing() {
+            Drawing.GD = GraphicsDevice;
         }
 
         private void RunTests() {
@@ -238,7 +255,10 @@ namespace CnCpp {
 
                                 LoadMap();
 
-                                MapTexture = null;
+                                if (MapTexture != null) {
+                                    MapTexture.Dispose();
+                                    MapTexture = null;
+                                }
 
                                 break;
 
@@ -399,6 +419,9 @@ namespace CnCpp {
                     }
 
                     if (MapTexture == null || MapMoved) {
+                        if (MapTexture != null) {
+                            MapTexture.Dispose();
+                        }
                         MapTexture = Map.GetTexture(GraphicsDevice);
                     }
 
@@ -486,44 +509,14 @@ namespace CnCpp {
 
             //// TODO: Add your update logic here
 
-            //var pos = Mouse.GetState();
+            var pos = Mouse.GetState();
 
-            //MousePos.X = pos.X;
-            //MousePos.Y = pos.Y;
+            MousePos.X = pos.X;
+            MousePos.Y = pos.Y;
 
-            //bool MouseFrameChanged = false;
-
-            //lock (plock) {
-            //    if (MouseTextures == null) {
-            //        CurrentMouseTexture = null;
-            //    } else {
-            //        if (MouseFrame == -1) {
-            //            ++MouseFrame;
-            //            MouseFrameChanged = true;
-            //        }
-
-            //        if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) || (pos.ScrollWheelValue > MouseScroll)) {
-            //            if ((MouseFrame + 1) < (int)MouseTextures.FrameCount) {
-            //                ++MouseFrame;
-            //                MouseFrameChanged = true;
-            //            }
-            //        } else if (kState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) || (pos.ScrollWheelValue < MouseScroll)) {
-            //            if (MouseFrame > -1) {
-            //                --MouseFrame;
-            //                MouseFrameChanged = true;
-            //            }
-            //        }
-
-            //        MouseScroll = pos.ScrollWheelValue;
-
-            //        if (MouseFrameChanged) {
-            //            if (MouseTextures != null && MouseFrame > -1) {
-            //                CurrentMouseTexture = MouseTextures.GetTexture((uint)MouseFrame, graphics.GraphicsDevice);
-            //            }
-            //        }
-
-            //    }
-            //}
+            if (MouseFrameChanged) {
+                MouseTextures.GetTexture((uint)MouseFrame, ref MouseTexture);
+            }
 
             //if (VoxelChanged) {
             //    VoxelChanged = false;
@@ -577,70 +570,61 @@ namespace CnCpp {
         protected override void Draw(GameTime gameTime) {
             GraphicsDevice.Clear(Color.CornflowerBlue);
 
+            GraphicsDevice.Textures[0] = null;
+
+            var MouseImage = MouseTexture.Compile(GraphicsDevice);
+
             // TODO: Add your drawing code here
-            GraphicsDevice.RasterizerState = new RasterizerState() {
-                FillMode = FillMode.Solid,
-                CullMode = CullMode.None
-            };
+            spriteBatch.Begin();
 
-            //if (CurrentMouseTexture != null) {
+            var v00 = new Vector2(0, 0);
 
-            //    //var bs = new BlendState();
-            //    //bs.AlphaSourceBlend = Blend.One;
-            //    //bs.AlphaDestinationBlend = Blend.InverseSourceAlpha;
-            //    //bs.ColorSourceBlend = Blend.One;
-            //    //bs.ColorDestinationBlend = Blend.Zero;
-            //    //bs.ColorWriteChannels = ColorWriteChannels.Red | ColorWriteChannels.Green | ColorWriteChannels.Blue | ColorWriteChannels.Alpha;
+            if (MapTexture != null) {
+                spriteBatch.Draw(MapTexture, v00, Color.White);
 
+                foreach (var t in Map.GetLayerTextures(GraphicsDevice)) {
+                    spriteBatch.Draw(t, v00, Color.White);
+                }
+            }
+
+            if (MouseTexture != null) {
+                spriteBatch.Draw(MouseImage, MousePos, Color.White);
+            }
+
+            spriteBatch.End();
+
+            //if (MapPreview != null) {
             //    spriteBatch.Begin();
 
-            //    spriteBatch.Draw(CurrentMouseTexture, MousePos, Color.White);
+            //    spriteBatch.Draw(MapPreview, MousePos, Color.White);
 
             //    spriteBatch.End();
             //}
 
-            if (MapTexture != null) {
-                spriteBatch.Begin();
 
-                var MapPos = new Vector2(0, 0);
+            //if (VoxelContent != null) {
+            //    worldMatrix = Matrix.Identity * Matrix.CreateScale(scale);
 
-                spriteBatch.Draw(MapTexture, MapPos, Color.White);
+            //    effect.World = worldMatrix;
 
-                spriteBatch.End();
-            }
+            //    projectionMatrix = Matrix.CreateOrthographic((float)GraphicsDevice.Viewport.Width, (float)GraphicsDevice.Viewport.Height, -1000.0f, 1000.0f);
 
-            if (MapPreview != null) {
-                spriteBatch.Begin();
+            //    effect.Projection = projectionMatrix;
 
-                spriteBatch.Draw(MapPreview, MousePos, Color.White);
+            //    viewMatrix = Matrix.CreateRotationX(rotation.X) * Matrix.CreateRotationY(rotation.Y) * Matrix.CreateRotationZ(rotation.Z) * Matrix.CreateTranslation(offX, offY, 0);
 
-                spriteBatch.End();
-            }
+            //    effect.View = viewMatrix;
 
 
-            if (VoxelContent != null) {
-                worldMatrix = Matrix.Identity * Matrix.CreateScale(scale);
+            //    GraphicsDevice.SetVertexBuffer(vertexBuffer);
+            //    GraphicsDevice.Indices = indexBuffer;
 
-                effect.World = worldMatrix;
+            //    foreach (EffectPass pass in effect.CurrentTechnique.Passes) {
+            //        pass.Apply();
 
-                projectionMatrix = Matrix.CreateOrthographic((float)GraphicsDevice.Viewport.Width, (float)GraphicsDevice.Viewport.Height, -1000.0f, 1000.0f);
-
-                effect.Projection = projectionMatrix;
-
-                viewMatrix = Matrix.CreateRotationX(rotation.X) * Matrix.CreateRotationY(rotation.Y) * Matrix.CreateRotationZ(rotation.Z) * Matrix.CreateTranslation(offX, offY, 0);
-
-                effect.View = viewMatrix;
-
-
-                GraphicsDevice.SetVertexBuffer(vertexBuffer);
-                GraphicsDevice.Indices = indexBuffer;
-
-                foreach (EffectPass pass in effect.CurrentTechnique.Passes) {
-                    pass.Apply();
-
-                    GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, VoxelContent.Length, 0, VoxelIndices.Length / 3);
-                }
-            }
+            //        GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, VoxelContent.Length, 0, VoxelIndices.Length / 3);
+            //    }
+            //}
 
             base.Draw(gameTime);
         }
@@ -712,6 +696,52 @@ namespace CnCpp {
             FileSystem.LoadMIX("MULTIMD.MIX");
             FileSystem.LoadMIX("THEMEMD.MIX");
             FileSystem.LoadMIX("MOVMD03.MIX");
+
+            var str = FileSystem.LoadFile("RA2MD.CSF");
+            if (str != null) {
+                new CSF(str);
+            }
+
+            var m = FileSystem.LoadFile("MOUSE.SHA");
+            if (m != null) {
+                MouseTextures = new SHP(m);
+                MouseFrame = 0;
+                MouseFrameChanged = true;
+            } else {
+                throw new InvalidDataException();
+            }
+
+            var mp = FileSystem.LoadFile("MOUSEPAL.PAL");
+            if (mp != null) {
+                MousePalette = new PAL(mp);
+                MouseTextures.Palette = MousePalette;
+            } else {
+                throw new InvalidDataException();
+            }
+
+            var p = FileSystem.LoadFile("ANIM.PAL");
+            if (p != null) {
+                AnimPalette = new PAL(p);
+            } else {
+                throw new InvalidDataException();
+            }
+
+
+            var rules = FileSystem.LoadFile("RULESMD.INI");
+            if (rules != null) {
+                INI.Rules_INI = new INI(rules);
+            } else {
+                throw new InvalidDataException();
+            }
+
+
+            var art = FileSystem.LoadFile("ARTMD.INI");
+            if (art != null) {
+                INI.Art_INI = new INI(art);
+            } else {
+                throw new InvalidDataException();
+            }
+
         }
 
         private void LoadMap() {
@@ -725,7 +755,20 @@ namespace CnCpp {
 
             Tactical.SetMap(Map);
 
+            INI.Rules_Combined = new INI();
+
+            INI.Rules_Combined.CombineWithFile(INI.Rules_INI);
+
+            INI.Rules_Combined.CombineWithFile(Map.MapFile);
+
+
+            OverlayTypeClass.LoadListFromINI(INI.Rules_Combined);
+
             IsoTileTypeClass.LoadListFromINI(Map.TheaterData, true);
+
+            CCFactory<OverlayTypeClass, OverlayClass>.Get().ReadAllFromINI(INI.Rules_Combined);
+
+            Map.SetupOverlays();
         }
 
         TacticalClass Tactical;
