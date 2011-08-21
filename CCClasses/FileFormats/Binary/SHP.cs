@@ -97,6 +97,27 @@ namespace CCClasses.FileFormats.Binary {
                 }
                 return true;
             }
+
+            public void DrawIntoTexture(Helpers.ZBufferedTexture Texture, CellStruct StartXY, PAL tmpPalette, int zIndex = 0) {
+                var fw = (int)Width;
+                var fh = (int)Height;
+
+                if (fw * fh != ProcessedBytes.Length) {
+                    throw new InvalidDataException("Frame does not decompress to the right amount of bytes");
+                }
+
+                for (var y = 0; y < fh; ++y) {
+                    for (var x = 0; x < fw; ++x) {
+                        var ixPix = y * fw + x;
+                        var ixClr = ProcessedBytes[ixPix];
+                        var clr = PAL.TranslucentColor;
+                        if (ixClr != 0) {
+                            clr = tmpPalette.Colors[ixClr];
+                        }
+                        Texture.PutPixel(clr, StartXY.X + x, StartXY.Y + y, zIndex);
+                    }
+                }
+            }
         }
 
         public FileHeader Header = new FileHeader();
@@ -218,7 +239,7 @@ namespace CCClasses.FileFormats.Binary {
             }
         }
 
-        public void DrawIntoTexture(Helpers.ZBufferedTexture Texture, CellStruct TopLeft, uint FrameIndex, PAL tmpPalette, int zIndex = 0) {
+        public void DrawIntoTexture(Helpers.ZBufferedTexture Texture, CellStruct CenterPoint, uint FrameIndex, PAL tmpPalette, int zIndex = 0) {
             if (FrameIndex > FrameHeaders.Count) {
                 throw new InvalidOperationException(String.Format("Frame {0} is not present in this file.", FrameIndex));
             }
@@ -227,25 +248,38 @@ namespace CCClasses.FileFormats.Binary {
             var fw = (int)frame.Width;
             var fh = (int)frame.Height;
 
-            if (fw * fh != frame.ProcessedBytes.Length) {
-                throw new InvalidDataException("Frame does not decompress to the right amount of bytes");
-            }
+            var startX = (int)(CenterPoint.X - fw / 2);
+            var startY = (int)(CenterPoint.Y - fh / 2);
 
-            var startX = (int)(TopLeft.X - frame.Width / 2);
-            var startY = (int)(TopLeft.Y - frame.Height / 2);
-
-            for (var y = 0; y < fh; ++y) {
-                for (var x = 0; x < fw; ++x) {
-                    var ixPix = y * fw + x;
-                    var ixClr = frame.ProcessedBytes[ixPix];
-                    var clr = PAL.TranslucentColor;
-                    if (ixClr != 0) {
-                        clr = tmpPalette.Colors[ixClr];
-                    }
-                    Texture.PutPixel(clr, startX + x, startY + y, zIndex);
-                }
-            }
+            frame.DrawIntoTexture(Texture, new CellStruct(startX, startY), tmpPalette, zIndex);
 
         }
+
+        public void DrawIntoTextureTL(Helpers.ZBufferedTexture Texture, CellStruct topLeft, uint FrameIndex, PAL tmpPalette, int zIndex = 0) {
+            if (FrameIndex > FrameHeaders.Count) {
+                throw new InvalidOperationException(String.Format("Frame {0} is not present in this file.", FrameIndex));
+            }
+
+            var frame = FrameHeaders[(int)FrameIndex];
+
+            frame.DrawIntoTexture(Texture, topLeft, tmpPalette, zIndex);
+        }
+
+
+        public void DrawIntoTextureBL(Helpers.ZBufferedTexture Texture, CellStruct BottomLeft, uint FrameIndex, PAL tmpPalette, int zIndex = 0) {
+            if (FrameIndex > FrameHeaders.Count) {
+                throw new InvalidOperationException(String.Format("Frame {0} is not present in this file.", FrameIndex));
+            }
+
+            var frame = FrameHeaders[(int)FrameIndex];
+
+            var fh = (int)frame.Height;
+
+            var startX = (int)(BottomLeft.X);
+            var startY = (int)(BottomLeft.Y - fh);
+
+            frame.DrawIntoTexture(Texture, new CellStruct(startX, startY), tmpPalette, zIndex);
+        }
+
     }
 }

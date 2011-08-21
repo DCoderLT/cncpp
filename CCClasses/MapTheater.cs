@@ -55,6 +55,8 @@ namespace CCClasses {
         internal static PAL isoPAL;
         internal static PAL unitPAL;
 
+        internal static PAL TemperatePAL;
+
         public static void Init(MapTheater tData) {
 
             var mixFiles = new List<String>() {
@@ -96,6 +98,15 @@ namespace CCClasses {
                 } else {
                     unitPAL = null;
                 }
+
+                PalName = "TEMPERAT.PAL";
+                PalStream = FileSystem.LoadFile(PalName);
+                if (PalStream != null) {
+                    TemperatePAL = new PAL(PalStream);
+                } else {
+                    TemperatePAL = null;
+                }
+
             }
         }
     }

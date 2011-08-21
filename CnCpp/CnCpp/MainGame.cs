@@ -756,12 +756,15 @@ namespace CnCpp {
 
             INI.Rules_Combined.CombineWithFile(Map.MapFile);
 
+            TiberiumClass.LoadListFromINI(INI.Rules_Combined);
 
             OverlayTypeClass.LoadListFromINI(INI.Rules_Combined);
 
             IsoTileTypeClass.LoadListFromINI(Map.TheaterData, true);
 
             IsoTileTypeClass.PrepaintTiles();
+
+            TiberiumClass.All.ReadAllFromINI(INI.Rules_Combined);
 
             CCFactory<OverlayTypeClass, OverlayClass>.Get().ReadAllFromINI(INI.Rules_Combined);
 

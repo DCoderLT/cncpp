@@ -13,7 +13,9 @@ namespace CCClasses {
 
         public static CCFileClass LoadFile(String filename) {
             if (LoadedFiles.ContainsKey(filename)) {
-                return LoadedFiles[filename];
+                var Loaded = LoadedFiles[filename];
+                Loaded.Reset();
+                return Loaded;
             }
             if (filename.IndexOf(Path.DirectorySeparatorChar) != -1) {
                 if (File.Exists(filename)) {

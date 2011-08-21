@@ -148,6 +148,7 @@ namespace CCClasses {
                         if (idx != 0xFF) {
                             cell.OverlayTypeIndex = idx;
                         }
+                        cell.OverlayState = MapFile.OverlayStates[y * 512 + x];
                     }
                 }
             }
@@ -301,6 +302,9 @@ namespace CCClasses {
             }
 
             T.Clear();
+            foreach (var c in VisibleCells) {
+                c.DrawOverlays(T);
+            }
 
             foreach (var c in VisibleCells) {
                 for (var obj = c.FirstObject.Value; obj != null; obj = obj.NextObject.Value) {

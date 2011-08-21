@@ -103,7 +103,7 @@ namespace CCClasses.AbstractHierarchy {
                 var repl = MapTheater.CurrentTheater.NewTheaterChar;
                 var l2 = filename[1].ToString().ToUpper()[0];
                 if (l2 >= 'A' && l2 <= 'Z') {
-                    filename = filename[0] + repl + filename.Substring(2);
+                    filename = filename.Substring(0, 1) + repl + filename.Substring(2);
                 }
                 filename += ".SHP";
             }

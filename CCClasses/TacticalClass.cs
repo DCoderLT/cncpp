@@ -106,7 +106,7 @@ namespace CCClasses {
             return NudgeStatus.S_OK;
         }
 
-        public int Adjust2DYTo3DZ(int Y) {
+        public static int Adjust2DYTo3DZ(int Y) {
             var extra = (Y >= 728) ? 1 : 0;
 
             return (int)(Y * MQ12 + extra + 0.5);
@@ -171,6 +171,67 @@ namespace CCClasses {
             VisibleMap = new Rectangle(EntireMap.X + visibleX * 60 - 30, EntireMap.Y + visibleY * 30 - 15, Map.LocalSize.Width * 60 + 60, Map.LocalSize.Height * 30 + 30);
 
             ScreenArea = new Rectangle(VisibleMap.X, VisibleMap.Y, Width, Height);
+        }
+
+        public static CoordStruct From3DCellsTo3DLeptons(CellStruct XY) {
+            return new CoordStruct((XY.X << 8) + 128, (XY.Y << 8) + 128, 0);
+        }
+
+        public static CellStruct From3DCellsTo2DLeptons(CellStruct XY) {
+            var p3 = From3DCellsTo3DLeptons(XY);
+
+            var dx = -60 * p3.Y / 2 + 60 * p3.X / 2;
+            var dy = 30 * p3.Y / 2 + 30 * p3.X / 2;
+
+            return new CellStruct(dx, dy);
+        }
+
+        public static CellStruct From3DCellsTo2DCells(CellStruct XY) {
+            var pl = From3DCellsTo2DLeptons(XY);
+            return new CellStruct(pl.X / 256, pl.Y / 256);
+        }
+
+        public static CellStruct Position2DCellsTL(CellStruct XY) {
+            var p2 = From3DCellsTo2DCells(XY);
+
+            var w2 = FileFormats.Binary.TMP.TileWidth / 2;
+            var h2 = FileFormats.Binary.TMP.TileHeight / 2;
+
+            var x = p2.X - w2;
+            var y = p2.Y - h2;
+
+            return new CellStruct(x, y);
+        }
+
+        public CellStruct Position2DOnScreen(CellStruct XY) {
+            XY.X -= ScreenBounds.Left;
+            XY.Y -= ScreenBounds.Top;
+            return XY;
+        }
+        
+
+        public static CellStruct From3DLeptonsTo2DLeptons(CoordStruct XYZ) {
+            var dx = -60 * XYZ.Y / 2 + 60 * XYZ.X / 2;
+            var dy = 30 * XYZ.Y / 2 + 30 * XYZ.X / 2;
+
+            return new CellStruct(dx, dy);
+        }
+
+        public static CellStruct From3DLeptonsTo2DCells(CoordStruct XYZ) {
+            var pl = From3DLeptonsTo2DLeptons(XYZ);
+            return new CellStruct(pl.X / 256, pl.Y / 256);
+        }
+
+        public CellStruct Position2DOnScreen(CoordStruct XYZ) {
+            var p2 = From3DLeptonsTo2DCells(XYZ);
+
+            p2.X -= ScreenBounds.Left;
+            p2.Y -= ScreenBounds.Top;
+            return p2;
+        }
+
+        internal static int From3DZTo2DY(int Z) {
+            return (int)(CellLevelHeight * (Z / 256));
         }
     }
 }

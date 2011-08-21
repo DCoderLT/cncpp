@@ -42,6 +42,7 @@ namespace CCClasses.FileFormats.Text {
         public List<TilePacked> Tiles = new List<TilePacked>();
 
         public List<int> Overlays = new List<int>();
+        public List<int> OverlayStates = new List<int>();
 
         protected override bool ReadFile(StreamReader r) {
             if (!base.ReadFile(r)) {
@@ -96,9 +97,13 @@ namespace CCClasses.FileFormats.Text {
             if (SectionExists("OverlayPack")) {
                 Overlays.Clear();
                 var unpackedOverlays = UnpackSectionLCW("OverlayPack");
-                foreach (var ixOverlay in unpackedOverlays) {
-                    Overlays.Add(ixOverlay);
-                }
+                Overlays = unpackedOverlays.Select(s => (int)s).ToList();
+            }
+
+            if (SectionExists("OverlayDataPack")) {
+                OverlayStates.Clear();
+                var unpacked = UnpackSectionLCW("OverlayDataPack");
+                OverlayStates = unpacked.Select(s => (int)s).ToList();
             }
 
             return true;

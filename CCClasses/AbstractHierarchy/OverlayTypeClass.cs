@@ -60,5 +60,22 @@ namespace CCClasses.AbstractHierarchy {
                 }
             }
         }
+
+        internal static CellStruct PositionAdjustment(int OverlayTypeIndex) {
+            var All = CCFactory<OverlayTypeClass, OverlayClass>.Get();
+
+            var t = All.FactoryItems[OverlayTypeIndex];
+
+            var xy = new CellStruct(0, 0);
+
+            if (t.Tiberium || t.Wall || t.ArrayIndex == 126 || t.Crate) {
+                xy.Y = -12;
+            }
+            if (OverlayTypeIndex == 126) {
+                --xy.Y;
+            }
+
+            return xy;
+        }
     }
 }

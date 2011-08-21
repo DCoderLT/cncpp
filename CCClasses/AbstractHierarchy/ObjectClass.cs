@@ -62,8 +62,8 @@ namespace CCClasses.AbstractHierarchy {
             } else {
                 var image = Type.SHPImage.Value;
                 if(image != null) {
-                    var topLeft = GetCell().TacticalPosition;
-                    image.DrawIntoTexture(Texture, topLeft, 0, MapTheater.unitPAL);
+                    var center = GetCell().TacticalPosition;
+                    image.DrawIntoTexture(Texture, center, 0, MapTheater.unitPAL);
                 }
             }
         }

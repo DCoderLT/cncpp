@@ -123,6 +123,15 @@ namespace CCClasses {
             _Contents = contents;
         }
 
+        public void Reset() {
+            if (_sreader != null) {
+                _sreader.BaseStream.Seek(0, SeekOrigin.Begin);
+            }
+            if (_breader != null) {
+                _breader.BaseStream.Seek(0, SeekOrigin.Begin);
+            }
+        }
+
         private StreamReader _sreader;
         private BinaryReader _breader;
 

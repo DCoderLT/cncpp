@@ -12,6 +12,8 @@ namespace CCClasses.AbstractHierarchy {
 
         Overlay = 5,
         OverlayType = 6,
+
+        Tiberium = 7,
     };
 
     public class BaseClass {
@@ -23,6 +25,7 @@ namespace CCClasses.AbstractHierarchy {
             {AbstractID.ObjectType, "ObjectTypeClass"},
             {AbstractID.Overlay, "OverlayClass"},
             {AbstractID.OverlayType, "OverlayTypeClass"},
+            {AbstractID.Tiberium, "TiberiumClass"},
         };
 
         public uint UniqueID;
@@ -66,6 +69,43 @@ namespace CCClasses.AbstractHierarchy {
         }
 
         public virtual void Dispose() {
+        }
+    }
+
+    public class CCTypeCollection<TClass> : List<TClass> where TClass : AbstractTypeClass, new() {
+        public TClass FindByID(String ID) {
+            return Find(f => f.ID.Equals(ID));
+        }
+
+        public TClass CreateFactory(String ident) {
+            var o = new TClass() {
+                ID = ident
+            };
+            CreatedFactory(o);
+            return o;
+        }
+
+        public void CreatedFactory(TClass Fact) {
+            Fact.ArrayIndex = this.Count;
+            this.Add(Fact);
+        }
+
+        public TClass FindOrAllocate(String ID) {
+            var o = FindByID(ID);
+            if (o == null) {
+                o = CreateFactory(ID);
+            }
+            return o;
+        }
+
+        public int FindIndex(String ID) {
+            return FindIndex(f => f.ID.Equals(ID));
+        }
+
+        public void ReadAllFromINI(FileFormats.Text.INI iniFile) {
+            foreach (var f in this) {
+                f.ReadFromINI(iniFile);
+            }
         }
     }
 

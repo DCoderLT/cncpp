@@ -230,6 +230,22 @@ namespace CCClasses.FileFormats.Text {
             return false;
         }
 
+        public bool GetDouble(String Section, String Key, ref double Result) {
+            var Default = Result;
+            return GetDouble(Section, Key, out Result, Default);
+        }
+
+        public bool GetDouble(String Section, String Key, out double Result, double Default) {
+            String s;
+            Result = Default;
+            if (GetString(Section, Key, out s, "")) {
+                if (Double.TryParse(s, out Result)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public bool GetBool(String Section, String Key, ref bool Result) {
             var Default = Result;
             return GetBool(Section, Key, out Result, Default);

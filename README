@@ -1,0 +1,1 @@
+I figured that writing an asset renderer for YR in C# would be a good chance to learn more about C#, and test out the performance of modern machines rendering old crappy file formats.

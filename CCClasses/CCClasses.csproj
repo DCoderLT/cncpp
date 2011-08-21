@@ -55,6 +55,7 @@
     <Compile Include="AbstractHierarchy\AbstractTypeClass.cs" />
     <Compile Include="AbstractHierarchy\OverlayClass.cs" />
     <Compile Include="AbstractHierarchy\OverlayTypeClass.cs" />
+    <Compile Include="AbstractHierarchy\TiberiumClass.cs" />
     <Compile Include="CellClass.cs" />
     <Compile Include="Drawing.cs" />
     <Compile Include="FileFormats\Binary\BAG.cs" />
